@@ -1,0 +1,91 @@
+services:
+
+  # ── Infrastructure ──────────────────────────────────────────────────────────
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: danburn
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend-net
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - backend-net
+
+  # ── Observability (Prometheus + Loki + Grafana in one container) ────────────
+
+  observability:
+    image: grafana/otel-lgtm:latest
+    ports:
+      - "3000:3000"   # Grafana UI
+      - "4317:4317"   # OTel Collector gRPC
+      - "4318:4318"   # OTel Collector HTTP
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    networks:
+      - backend-net
+
+  # ── Application Services ────────────────────────────────────────────────────
+
+  service-core:
+    build:
+      context: .
+      dockerfile: service-core/Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/danburn?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_DATA_REDIS_HOST=redis
+      - OTLP_URL=http://observability:4318/v1/metrics
+      - LOKI_URL=http://observability:3100/loki/api/v1/push
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend-net
+
+  service-gateway:
+    build:
+      context: .
+      dockerfile: service-gateway/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - CORE_SERVICE_URL=http://service-core:8081
+      - OTLP_URL=http://observability:4318/v1/metrics
+      - LOKI_URL=http://observability:3100/loki/api/v1/push
+    depends_on:
+      - service-core
+    networks:
+      - backend-net
+
+volumes:
+  mysql-data:
+
+networks:
+  backend-net:
+    driver: bridge
