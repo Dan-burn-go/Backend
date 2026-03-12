@@ -32,6 +32,4 @@ public class UserController {
         User user = userService.create(request.email(), request.name());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(user));
     }
-
-    public record CreateUserRequest(String email, String name) {}
 }
