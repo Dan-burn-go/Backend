@@ -36,6 +36,8 @@ subprojects {
             dependency 'org.springframework.security:spring-security-core:6.4.4'
             dependency 'org.springframework.security:spring-security-crypto:6.4.4'
             dependency 'org.springframework.security:spring-security-web:6.4.4'
+            // CVE-2025-41253 Spring Cloud Gateway Expression Language Injection 취약점 해결
+            dependency 'org.springframework.cloud:spring-cloud-starter-gateway:4.3.3'
         }
     }
 
