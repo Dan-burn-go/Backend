@@ -26,6 +26,9 @@ subprojects {
             mavenBom "org.springframework.boot:spring-boot-dependencies:3.4.3"
             mavenBom "org.springframework.cloud:spring-cloud-dependencies:2024.0.1"
         }
+        dependencies {
+            dependency 'org.springframework:spring-core:6.2.11'
+        }
     }
 
     configurations {
