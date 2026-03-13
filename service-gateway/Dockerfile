@@ -19,6 +19,10 @@ RUN gradle :service-gateway:bootJar --no-daemon -x test
 # ── Runtime Stage ──────────────────────────────────────────────────────────────
 FROM eclipse-temurin:21-jre-alpine
 
+# CVE-2026-22184 zlib Buffer Overflow 취약점 해결
+RUN apk update && apk upgrade && \
+    apk add --no-cache zlib>=1.3.2-r0
+
 WORKDIR /app
 
 COPY --from=builder /app/service-gateway/build/libs/*.jar app.jar
