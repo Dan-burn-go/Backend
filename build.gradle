@@ -42,6 +42,10 @@ subprojects {
             dependency 'org.apache.tomcat:tomcat-catalina:10.1.46'
             dependency 'org.apache.tomcat.embed:tomcat-embed-core:10.1.46'
             dependency 'org.apache.tomcat.embed:tomcat-embed-websocket:10.1.46'
+            // GHSA-72hv-8253-57qq Jackson Core DoS 취약점 해결
+            dependency 'com.fasterxml.jackson.core:jackson-core:2.18.6'
+            dependency 'com.fasterxml.jackson.core:jackson-databind:2.18.6'
+            dependency 'com.fasterxml.jackson.core:jackson-annotations:2.18.6'
         }
     }
 
