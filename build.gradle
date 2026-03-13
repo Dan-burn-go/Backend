@@ -24,7 +24,7 @@ subprojects {
     dependencyManagement {
         imports {
             mavenBom "org.springframework.boot:spring-boot-dependencies:3.4.5"
-            mavenBom "org.springframework.cloud:spring-cloud-dependencies:2024.0.1"
+            mavenBom "org.springframework.cloud:spring-cloud-dependencies:2024.0.2"
         }
         dependencies {
             // CVE-2025-41249, CVE-2025-22235 Spring Framework 보안 취약점 해결
