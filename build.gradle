@@ -38,6 +38,8 @@ subprojects {
             dependency 'org.springframework.security:spring-security-web:6.4.4'
             // CVE-2025-41253 Spring Cloud Gateway Expression Language Injection 취약점 해결
             dependency 'org.springframework.cloud:spring-cloud-starter-gateway:4.3.3'
+            dependency 'org.springframework.cloud:spring-cloud-gateway-server:4.3.3'
+            dependency 'org.springframework.cloud:spring-cloud-gateway-webflux:4.3.3'
             // CVE-2025-55752 Apache Tomcat Directory traversal 취약점 해결
             dependency 'org.apache.tomcat:tomcat-catalina:10.1.46'
             dependency 'org.apache.tomcat.embed:tomcat-embed-core:10.1.46'
