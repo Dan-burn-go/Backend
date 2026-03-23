@@ -51,3 +51,7 @@ Thumbs.db
 .env
 logs/
 *.tmp
+
+# Claude Code / OMC
+.omc/
+.claude/
