@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: service-congestion
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: 6379
+
+server:
+  port: 8082
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+  endpoint:
+    health:
+      show-details: always
+  otlp:
+    metrics:
+      export:
+        url: ${OTLP_URL:http://localhost:4318/v1/metrics}
+        step: 10s
+
+logging:
+  loki:
+    url: ${LOKI_URL:http://localhost:3100/loki/api/v1/push}
+  level:
+    com.danburn: DEBUG

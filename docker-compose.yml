@@ -6,7 +6,7 @@ services:
     image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: danburn
+      MYSQL_DATABASE: danburn_map
     ports:
       - "3306:3306"
     volumes:
@@ -31,7 +31,7 @@ services:
     networks:
       - backend-net
 
-  # ── Observability (Prometheus + Loki + Grafana in one container) ────────────
+  # ── Observability (Prometheus + Loki + Grafana) ─────────────────────────────
 
   observability:
     image: grafana/otel-lgtm:latest
@@ -45,26 +45,90 @@ services:
     networks:
       - backend-net
 
-  # ── Application ────────────────────────────────────────────────────────────
+  # ── Application Services ────────────────────────────────────────────────────
 
-  server:
+  # 혼잡도 분석 서비스 (Redis)
+  service-congestion:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: service-congestion/Dockerfile
     ports:
-      - "8080:8080"
+      - "8082:8082"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/danburn?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - SPRING_DATA_REDIS_HOST=redis
+      - OTLP_URL=http://observability:4318/v1/metrics
+      - LOKI_URL=http://observability:3100/loki/api/v1/push
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - backend-net
+
+  # 지도 & 대체지 추천 서비스 (MySQL)
+  service-map:
+    build:
+      context: .
+      dockerfile: service-map/Dockerfile
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/danburn_map?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root
-      - SPRING_DATA_REDIS_HOST=redis
       - OTLP_URL=http://observability:4318/v1/metrics
       - LOKI_URL=http://observability:3100/loki/api/v1/push
     depends_on:
       mysql:
         condition: service_healthy
+    networks:
+      - backend-net
+
+  # 교통 & 버스 서비스 (Redis)
+  service-transport:
+    build:
+      context: .
+      dockerfile: service-transport/Dockerfile
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_DATA_REDIS_HOST=redis
+      - OTLP_URL=http://observability:4318/v1/metrics
+      - LOKI_URL=http://observability:3100/loki/api/v1/push
+    depends_on:
       redis:
         condition: service_healthy
+    networks:
+      - backend-net
+
+  # AI 분석 서비스 (Python/FastAPI)
+  service-ai:
+    build:
+      context: ./service-ai
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8085"
+    networks:
+      - backend-net
+
+  # API Gateway (진입점)
+  service-gateway:
+    build:
+      context: .
+      dockerfile: service-gateway/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - CONGESTION_SERVICE_URL=http://service-congestion:8082
+      - MAP_SERVICE_URL=http://service-map:8083
+      - TRANSPORT_SERVICE_URL=http://service-transport:8084
+      - AI_SERVICE_URL=http://service-ai:8085
+      - OTLP_URL=http://observability:4318/v1/metrics
+      - LOKI_URL=http://observability:3100/loki/api/v1/push
+    depends_on:
+      - service-congestion
+      - service-map
+      - service-transport
+      - service-ai
     networks:
       - backend-net
 

@@ -133,27 +133,75 @@
   },
   "hotPaths": [
     {
+      "path": "settings.gradle",
+      "accessCount": 4,
+      "lastAccessed": 1774249039595,
+      "type": "file"
+    },
+    {
+      "path": "docker-compose.yml",
+      "accessCount": 4,
+      "lastAccessed": 1774249091826,
+      "type": "file"
+    },
+    {
+      "path": "service-gateway/src/main/resources/application.yml",
+      "accessCount": 3,
+      "lastAccessed": 1774249079630,
+      "type": "file"
+    },
+    {
       "path": "src/main/java/com/danburn/server/ServerApplication.java",
       "accessCount": 2,
       "lastAccessed": 1774247586966,
       "type": "file"
     },
     {
-      "path": "settings.gradle",
+      "path": "service-common/src/main/java/com/danburn/common/response/ApiResponse.java",
       "accessCount": 2,
-      "lastAccessed": 1774247605836,
+      "lastAccessed": 1774248049696,
       "type": "file"
     },
     {
-      "path": "docker-compose.yml",
+      "path": "service-common/src/main/java/com/danburn/common/exception/GlobalException.java",
       "accessCount": 2,
-      "lastAccessed": 1774247621397,
+      "lastAccessed": 1774248050473,
       "type": "file"
     },
     {
       "path": "service-core/src/main/java/com/danburn/core/CoreApplication.java",
-      "accessCount": 1,
-      "lastAccessed": 1774247146493,
+      "accessCount": 2,
+      "lastAccessed": 1774248051833,
+      "type": "file"
+    },
+    {
+      "path": "service-core/src/main/resources/application.yml",
+      "accessCount": 2,
+      "lastAccessed": 1774248073425,
+      "type": "file"
+    },
+    {
+      "path": "service-core/src/main/resources/logback-spring.xml",
+      "accessCount": 2,
+      "lastAccessed": 1774248078129,
+      "type": "file"
+    },
+    {
+      "path": "service-gateway/src/main/java/com/danburn/gateway/GatewayApplication.java",
+      "accessCount": 2,
+      "lastAccessed": 1774248079369,
+      "type": "file"
+    },
+    {
+      "path": "service-gateway/src/main/resources/logback-spring.xml",
+      "accessCount": 2,
+      "lastAccessed": 1774248085150,
+      "type": "file"
+    },
+    {
+      "path": "service-core/Dockerfile",
+      "accessCount": 2,
+      "lastAccessed": 1774248090700,
       "type": "file"
     },
     {
@@ -196,54 +244,6 @@
       "path": "service-core/src/main/java/com/danburn/core/config/SwaggerConfig.java",
       "accessCount": 1,
       "lastAccessed": 1774247150691,
-      "type": "file"
-    },
-    {
-      "path": "service-common/src/main/java/com/danburn/common/response/ApiResponse.java",
-      "accessCount": 1,
-      "lastAccessed": 1774247151416,
-      "type": "file"
-    },
-    {
-      "path": "service-common/src/main/java/com/danburn/common/exception/GlobalException.java",
-      "accessCount": 1,
-      "lastAccessed": 1774247151862,
-      "type": "file"
-    },
-    {
-      "path": "service-gateway/src/main/java/com/danburn/gateway/GatewayApplication.java",
-      "accessCount": 1,
-      "lastAccessed": 1774247152332,
-      "type": "file"
-    },
-    {
-      "path": "service-core/src/main/resources/application.yml",
-      "accessCount": 1,
-      "lastAccessed": 1774247152752,
-      "type": "file"
-    },
-    {
-      "path": "service-gateway/src/main/resources/application.yml",
-      "accessCount": 1,
-      "lastAccessed": 1774247153661,
-      "type": "file"
-    },
-    {
-      "path": "service-core/src/main/resources/logback-spring.xml",
-      "accessCount": 1,
-      "lastAccessed": 1774247154083,
-      "type": "file"
-    },
-    {
-      "path": "service-gateway/src/main/resources/logback-spring.xml",
-      "accessCount": 1,
-      "lastAccessed": 1774247154248,
-      "type": "file"
-    },
-    {
-      "path": "service-core/Dockerfile",
-      "accessCount": 1,
-      "lastAccessed": 1774247191465,
       "type": "file"
     },
     {
@@ -322,6 +322,114 @@
       "path": "Dockerfile",
       "accessCount": 1,
       "lastAccessed": 1774247609325,
+      "type": "file"
+    },
+    {
+      "path": "service-core/src/main/java/com/danburn/core/domain/member/domain/Member.java",
+      "accessCount": 1,
+      "lastAccessed": 1774248055099,
+      "type": "file"
+    },
+    {
+      "path": "service-core/src/main/java/com/danburn/core/domain/member/repository/MemberRepository.java",
+      "accessCount": 1,
+      "lastAccessed": 1774248056286,
+      "type": "file"
+    },
+    {
+      "path": "service-core/src/main/java/com/danburn/core/domain/member/service/MemberService.java",
+      "accessCount": 1,
+      "lastAccessed": 1774248059656,
+      "type": "file"
+    },
+    {
+      "path": "service-core/src/main/java/com/danburn/core/domain/member/dto/request/CreateMemberRequest.java",
+      "accessCount": 1,
+      "lastAccessed": 1774248060310,
+      "type": "file"
+    },
+    {
+      "path": "service-core/src/main/java/com/danburn/core/domain/member/controller/MemberController.java",
+      "accessCount": 1,
+      "lastAccessed": 1774248064008,
+      "type": "file"
+    },
+    {
+      "path": "service-core/src/main/java/com/danburn/core/global/handler/GlobalExceptionHandler.java",
+      "accessCount": 1,
+      "lastAccessed": 1774248067059,
+      "type": "file"
+    },
+    {
+      "path": "service-core/src/main/java/com/danburn/core/global/config/SwaggerConfig.java",
+      "accessCount": 1,
+      "lastAccessed": 1774248069351,
+      "type": "file"
+    },
+    {
+      "path": "service-gateway/Dockerfile",
+      "accessCount": 1,
+      "lastAccessed": 1774248093352,
+      "type": "file"
+    },
+    {
+      "path": "service-congestion/src/main/java/com/danburn/congestion/CongestionApplication.java",
+      "accessCount": 1,
+      "lastAccessed": 1774249051373,
+      "type": "file"
+    },
+    {
+      "path": "service-map/src/main/java/com/danburn/map/MapApplication.java",
+      "accessCount": 1,
+      "lastAccessed": 1774249051778,
+      "type": "file"
+    },
+    {
+      "path": "service-transport/src/main/java/com/danburn/transport/TransportApplication.java",
+      "accessCount": 1,
+      "lastAccessed": 1774249051987,
+      "type": "file"
+    },
+    {
+      "path": "service-congestion/src/main/resources/application.yml",
+      "accessCount": 1,
+      "lastAccessed": 1774249052904,
+      "type": "file"
+    },
+    {
+      "path": "service-map/src/main/resources/application.yml",
+      "accessCount": 1,
+      "lastAccessed": 1774249055887,
+      "type": "file"
+    },
+    {
+      "path": "service-transport/src/main/resources/application.yml",
+      "accessCount": 1,
+      "lastAccessed": 1774249057418,
+      "type": "file"
+    },
+    {
+      "path": "service-ai/requirements.txt",
+      "accessCount": 1,
+      "lastAccessed": 1774249058854,
+      "type": "file"
+    },
+    {
+      "path": "service-ai/Dockerfile",
+      "accessCount": 1,
+      "lastAccessed": 1774249059723,
+      "type": "file"
+    },
+    {
+      "path": "service-ai/main.py",
+      "accessCount": 1,
+      "lastAccessed": 1774249060885,
+      "type": "file"
+    },
+    {
+      "path": "service-congestion/Dockerfile",
+      "accessCount": 1,
+      "lastAccessed": 1774249070363,
       "type": "file"
     }
   ],
