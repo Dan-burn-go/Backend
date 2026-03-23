@@ -5,24 +5,23 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Column;
-import lombok.AccessLevel;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Builder;
 import com.danburn.common.domain.BaseEntity;
 
-
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Congestion extends BaseEntity{
+public class Congestion extends BaseEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "congestion_id")
     private Long id;
-
 
     @Column(name = "location_id")
     private Long locationId;
@@ -43,11 +42,11 @@ public class Congestion extends BaseEntity{
 
     @Builder
     private Congestion(
-                       Long locationId, 
-                       CongestionLevel congestionLevel, 
-                       Integer minPeopleCount, 
-                       Integer maxPeopleCount, 
-                       PopulationTrend populationTrend){
+            Long locationId,
+            CongestionLevel congestionLevel,
+            Integer minPeopleCount,
+            Integer maxPeopleCount,
+            PopulationTrend populationTrend) {
         this.locationId = locationId;
         this.congestionLevel = congestionLevel;
         this.minPeopleCount = minPeopleCount;
