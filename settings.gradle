@@ -1,5 +1,1 @@
 rootProject.name = 'dan-burn-go'
-
-include 'service-common'
-include 'service-gateway'
-include 'service-core'

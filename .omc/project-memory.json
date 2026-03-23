@@ -1,0 +1,329 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1774247090022,
+  "projectRoot": "/Users/dhkim/1Project/Dan-burn-go/Backend",
+  "techStack": {
+    "languages": [
+      {
+        "name": "Java/Kotlin",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "build.gradle"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "gradle",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [],
+    "gitBranches": {
+      "defaultBranch": "dev",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "build": {
+      "path": "build",
+      "purpose": "Build output",
+      "fileCount": 0,
+      "lastAccessed": 1774247089981,
+      "keyFiles": []
+    },
+    "gradle": {
+      "path": "gradle",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1774247089981,
+      "keyFiles": []
+    },
+    "service-common": {
+      "path": "service-common",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1774247089982,
+      "keyFiles": [
+        "build.gradle"
+      ]
+    },
+    "service-core": {
+      "path": "service-core",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1774247089982,
+      "keyFiles": [
+        "Dockerfile",
+        "build.gradle"
+      ]
+    },
+    "service-gateway": {
+      "path": "service-gateway",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1774247089982,
+      "keyFiles": [
+        "Dockerfile",
+        "build.gradle"
+      ]
+    },
+    "service-common/build": {
+      "path": "service-common/build",
+      "purpose": "Build output",
+      "fileCount": 0,
+      "lastAccessed": 1774247089983,
+      "keyFiles": []
+    },
+    "service-common/src": {
+      "path": "service-common/src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1774247089983,
+      "keyFiles": []
+    },
+    "service-core/build": {
+      "path": "service-core/build",
+      "purpose": "Build output",
+      "fileCount": 1,
+      "lastAccessed": 1774247089983,
+      "keyFiles": [
+        "resolvedMainClassName"
+      ]
+    },
+    "service-core/src": {
+      "path": "service-core/src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1774247089983,
+      "keyFiles": []
+    },
+    "service-gateway/build": {
+      "path": "service-gateway/build",
+      "purpose": "Build output",
+      "fileCount": 1,
+      "lastAccessed": 1774247089984,
+      "keyFiles": [
+        "resolvedMainClassName"
+      ]
+    },
+    "service-gateway/src": {
+      "path": "service-gateway/src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1774247089986,
+      "keyFiles": []
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "src/main/java/com/danburn/server/ServerApplication.java",
+      "accessCount": 2,
+      "lastAccessed": 1774247586966,
+      "type": "file"
+    },
+    {
+      "path": "settings.gradle",
+      "accessCount": 2,
+      "lastAccessed": 1774247605836,
+      "type": "file"
+    },
+    {
+      "path": "docker-compose.yml",
+      "accessCount": 2,
+      "lastAccessed": 1774247621397,
+      "type": "file"
+    },
+    {
+      "path": "service-core/src/main/java/com/danburn/core/CoreApplication.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247146493,
+      "type": "file"
+    },
+    {
+      "path": "service-core/src/main/java/com/danburn/core/api/UserController.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247146989,
+      "type": "file"
+    },
+    {
+      "path": "service-core/src/main/java/com/danburn/core/api/GlobalExceptionHandler.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247147910,
+      "type": "file"
+    },
+    {
+      "path": "service-core/src/main/java/com/danburn/core/api/CreateUserRequest.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247148413,
+      "type": "file"
+    },
+    {
+      "path": "service-core/src/main/java/com/danburn/core/domain/user/User.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247148719,
+      "type": "file"
+    },
+    {
+      "path": "service-core/src/main/java/com/danburn/core/domain/user/UserRepository.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247149626,
+      "type": "file"
+    },
+    {
+      "path": "service-core/src/main/java/com/danburn/core/domain/user/UserService.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247150079,
+      "type": "file"
+    },
+    {
+      "path": "service-core/src/main/java/com/danburn/core/config/SwaggerConfig.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247150691,
+      "type": "file"
+    },
+    {
+      "path": "service-common/src/main/java/com/danburn/common/response/ApiResponse.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247151416,
+      "type": "file"
+    },
+    {
+      "path": "service-common/src/main/java/com/danburn/common/exception/GlobalException.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247151862,
+      "type": "file"
+    },
+    {
+      "path": "service-gateway/src/main/java/com/danburn/gateway/GatewayApplication.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247152332,
+      "type": "file"
+    },
+    {
+      "path": "service-core/src/main/resources/application.yml",
+      "accessCount": 1,
+      "lastAccessed": 1774247152752,
+      "type": "file"
+    },
+    {
+      "path": "service-gateway/src/main/resources/application.yml",
+      "accessCount": 1,
+      "lastAccessed": 1774247153661,
+      "type": "file"
+    },
+    {
+      "path": "service-core/src/main/resources/logback-spring.xml",
+      "accessCount": 1,
+      "lastAccessed": 1774247154083,
+      "type": "file"
+    },
+    {
+      "path": "service-gateway/src/main/resources/logback-spring.xml",
+      "accessCount": 1,
+      "lastAccessed": 1774247154248,
+      "type": "file"
+    },
+    {
+      "path": "service-core/Dockerfile",
+      "accessCount": 1,
+      "lastAccessed": 1774247191465,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/danburn/server/domain/member/domain/Member.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247587209,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/danburn/server/domain/member/repository/MemberRepository.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247587412,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/danburn/server/domain/member/service/MemberService.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247587617,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/danburn/server/domain/member/dto/request/CreateMemberRequest.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247587823,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/danburn/server/domain/member/controller/MemberController.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247588026,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/danburn/server/global/exception/GlobalException.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247588232,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/danburn/server/global/response/ApiResponse.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247588438,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/danburn/server/global/handler/GlobalExceptionHandler.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247588646,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/danburn/server/global/config/SwaggerConfig.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247588852,
+      "type": "file"
+    },
+    {
+      "path": "src/main/resources/application.yml",
+      "accessCount": 1,
+      "lastAccessed": 1774247589053,
+      "type": "file"
+    },
+    {
+      "path": "src/main/resources/logback-spring.xml",
+      "accessCount": 1,
+      "lastAccessed": 1774247589260,
+      "type": "file"
+    },
+    {
+      "path": "src/test/java/com/danburn/server/ServerApplicationTests.java",
+      "accessCount": 1,
+      "lastAccessed": 1774247589468,
+      "type": "file"
+    },
+    {
+      "path": "Dockerfile",
+      "accessCount": 1,
+      "lastAccessed": 1774247609325,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

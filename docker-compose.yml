@@ -45,14 +45,14 @@ services:
     networks:
       - backend-net
 
-  # ── Application Services ────────────────────────────────────────────────────
+  # ── Application ────────────────────────────────────────────────────────────
 
-  service-core:
+  server:
     build:
       context: .
-      dockerfile: service-core/Dockerfile
+      dockerfile: Dockerfile
     ports:
-      - "8081:8081"
+      - "8080:8080"
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/danburn?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=root
@@ -65,21 +65,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks:
-      - backend-net
-
-  service-gateway:
-    build:
-      context: .
-      dockerfile: service-gateway/Dockerfile
-    ports:
-      - "8080:8080"
-    environment:
-      - CORE_SERVICE_URL=http://service-core:8081
-      - OTLP_URL=http://observability:4318/v1/metrics
-      - LOKI_URL=http://observability:3100/loki/api/v1/push
-    depends_on:
-      - service-core
     networks:
       - backend-net
 

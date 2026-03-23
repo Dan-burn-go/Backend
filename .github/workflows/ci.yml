@@ -10,11 +10,6 @@ jobs: # 작업 정의 (어디서 실행할지, 어떤 작업을 할지)
   build:
     runs-on: ubuntu-latest # 실행 환경
 
-    strategy:
-      # [핵심] 서비스가 추가되면 여기에 이름만 더 적어야 함
-      matrix:
-        service: [service-core, service-gateway]
-
     steps:
       - uses: actions/checkout@v4 # 코드 확인
 
@@ -29,19 +24,19 @@ jobs: # 작업 정의 (어디서 실행할지, 어떤 작업을 할지)
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
-      
-      - name: Build Service
-        run: ./gradlew :${{ matrix.service }}:build --no-daemon # 빌드 실행
 
-      # 서비스 도커 빌드 검증
+      - name: Build
+        run: ./gradlew build --no-daemon # 빌드 실행
+
+      # 도커 빌드 검증
       - name: Docker Build Test
-        run: docker build -t my-app-${{ matrix.service }}:${{ github.sha }} -f ./${{ matrix.service }}/Dockerfile .
+        run: docker build -t dan-burn-go:${{ github.sha }} .
 
       # 이미지 보안 스캔
       - name: Run Trivy scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'my-app-${{ matrix.service }}:${{ github.sha }}'
+          image-ref: 'dan-burn-go:${{ github.sha }}'
           format: 'table'
           severity: 'HIGH,CRITICAL'
           exit-code: '1'
