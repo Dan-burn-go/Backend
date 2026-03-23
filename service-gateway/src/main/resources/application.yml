@@ -4,10 +4,26 @@ spring:
   cloud:
     gateway:
       routes:
-        - id: core-route
-          uri: ${CORE_SERVICE_URL:http://localhost:8081}
+        # 혼잡도 분석 서비스
+        - id: congestion-route
+          uri: ${CONGESTION_SERVICE_URL:http://localhost:8082}
           predicates:
-            - Path=/api/**,/swagger-ui/**,/v3/api-docs/**
+            - Path=/api/congestion/**
+        # 지도 & 대체지 추천 서비스
+        - id: map-route
+          uri: ${MAP_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/map/**,/swagger-ui/**,/v3/api-docs/**
+        # 교통 & 버스 서비스
+        - id: transport-route
+          uri: ${TRANSPORT_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/transport/**
+        # AI 분석 서비스
+        - id: ai-route
+          uri: ${AI_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/ai/**
 
 server:
   port: 8080

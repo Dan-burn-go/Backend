@@ -1,25 +1,13 @@
 spring:
   application:
-    name: service-core
-  datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/danburn?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
-    username: ${SPRING_DATASOURCE_USERNAME:root}
-    password: ${SPRING_DATASOURCE_PASSWORD:root}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
+    name: service-congestion
   data:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: 6379
 
 server:
-  port: 8081
+  port: 8082
 
 management:
   endpoints:
