@@ -95,8 +95,8 @@ jobs:
       - name: Pull and restart containers
         run: |
           cd ~/Backend
-          sudo docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
-          sudo docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+          sudo docker-compose -f docker-compose.yml -f docker-compose.prod.yml pull
+          sudo docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
       - name: Clean up old images
         run: sudo docker image prune -f
