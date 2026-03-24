@@ -5,28 +5,9 @@ on:
     branches: [ main ]
 
 jobs:
-  # ── Docker 이미지 빌드 & 푸시 (GitHub-hosted) ─────────────────────────────
+  # ── Docker 이미지 순차 빌드 & 푸시 (GitHub-hosted) ────────────────────────
   build-and-push:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        include:
-          - service: service-gateway
-            context: .
-            dockerfile: service-gateway/Dockerfile
-          - service: service-map
-            context: .
-            dockerfile: service-map/Dockerfile
-          - service: service-congestion
-            context: .
-            dockerfile: service-congestion/Dockerfile
-          - service: service-transport
-            context: .
-            dockerfile: service-transport/Dockerfile
-          - service: service-ai
-            context: ./service-ai
-            dockerfile: ./service-ai/Dockerfile
 
     steps:
       - uses: actions/checkout@v4
@@ -40,17 +21,65 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: Build and push service-gateway
         uses: docker/build-push-action@v5
         with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
+          context: .
+          file: service-gateway/Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/danburn-${{ matrix.service }}:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/danburn-${{ matrix.service }}:${{ github.sha }}
-          cache-from: type=gha,scope=${{ matrix.service }}
-          cache-to: type=gha,scope=${{ matrix.service }},mode=max
+            ${{ secrets.DOCKERHUB_USERNAME }}/danburn-service-gateway:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/danburn-service-gateway:${{ github.sha }}
+          cache-from: type=gha,scope=service-gateway
+          cache-to: type=gha,scope=service-gateway,mode=max
+
+      - name: Build and push service-map
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: service-map/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/danburn-service-map:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/danburn-service-map:${{ github.sha }}
+          cache-from: type=gha,scope=service-map
+          cache-to: type=gha,scope=service-map,mode=max
+
+      - name: Build and push service-congestion
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: service-congestion/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/danburn-service-congestion:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/danburn-service-congestion:${{ github.sha }}
+          cache-from: type=gha,scope=service-congestion
+          cache-to: type=gha,scope=service-congestion,mode=max
+
+      - name: Build and push service-transport
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: service-transport/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/danburn-service-transport:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/danburn-service-transport:${{ github.sha }}
+          cache-from: type=gha,scope=service-transport
+          cache-to: type=gha,scope=service-transport,mode=max
+
+      - name: Build and push service-ai
+        uses: docker/build-push-action@v5
+        with:
+          context: ./service-ai
+          file: ./service-ai/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/danburn-service-ai:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/danburn-service-ai:${{ github.sha }}
+          cache-from: type=gha,scope=service-ai
+          cache-to: type=gha,scope=service-ai,mode=max
 
   # ── 서버 배포 (Self-hosted Runner) ─────────────────────────────────────────
   deploy:
