@@ -93,10 +93,12 @@ jobs:
           git pull origin main
 
       - name: Pull and restart containers
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
           cd ~/Backend
-          sudo docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
-          sudo docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+          sudo -E docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
+          sudo -E docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
       - name: Clean up old images
         run: sudo docker image prune -f
