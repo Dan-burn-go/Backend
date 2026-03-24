@@ -5,8 +5,12 @@ WORKDIR /app
 
 COPY settings.gradle build.gradle ./
 COPY service-common/build.gradle service-common/build.gradle
-COPY service-common/src           service-common/src
 COPY service-map/build.gradle service-map/build.gradle
+
+# 의존성만 먼저 다운로드하여 레이어 캐싱 (build.gradle 변경 시에만 재실행)
+RUN gradle :service-map:dependencies --no-daemon -q
+
+COPY service-common/src           service-common/src
 COPY service-map/src          service-map/src
 
 RUN gradle :service-map:bootJar --no-daemon -x test
