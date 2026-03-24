@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: service-gateway
+  cloud:
+    gateway:
+      routes:
+        # 혼잡도 분석 서비스
+        - id: congestion-route
+          uri: ${CONGESTION_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/congestion/**
+        # 지도 & 대체지 추천 서비스
+        - id: map-route
+          uri: ${MAP_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/map/**,/swagger-ui/**,/v3/api-docs/**
+        # 교통 & 버스 서비스
+        - id: transport-route
+          uri: ${TRANSPORT_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/transport/**
+        # AI 분석 서비스
+        - id: ai-route
+          uri: ${AI_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/ai/**
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+  endpoint:
+    health:
+      show-details: always
+  otlp:
+    metrics:
+      export:
+        url: ${OTLP_URL:http://localhost:4318/v1/metrics}
+        step: 10s
+
+logging:
+  loki:
+    url: ${LOKI_URL:http://localhost:3100/loki/api/v1/push}
+  level:
+    com.danburn: DEBUG
