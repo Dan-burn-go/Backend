@@ -17,7 +17,7 @@ spring:
         - id: map-route
           uri: ${MAP_SERVICE_URL:http://localhost:8083}
           predicates:
-            - Path=/api/map/**,/swagger-ui/**,/v3/api-docs/**
+            - Path=/api/map/**
         # 교통 & 버스 서비스
         - id: transport-route
           uri: ${TRANSPORT_SERVICE_URL:http://localhost:8084}
@@ -28,6 +28,35 @@ spring:
           uri: ${AI_SERVICE_URL:http://localhost:8085}
           predicates:
             - Path=/api/ai/**
+        # Swagger API Docs 라우트
+        - id: congestion-api-docs
+          uri: ${CONGESTION_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/v3/api-docs/congestion
+          filters:
+            - RewritePath=/v3/api-docs/congestion, /v3/api-docs
+        - id: map-api-docs
+          uri: ${MAP_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/v3/api-docs/map
+          filters:
+            - RewritePath=/v3/api-docs/map, /v3/api-docs
+        - id: transport-api-docs
+          uri: ${TRANSPORT_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/v3/api-docs/transport
+          filters:
+            - RewritePath=/v3/api-docs/transport, /v3/api-docs
+
+springdoc:
+  swagger-ui:
+    urls:
+      - name: 혼잡도 분석 서비스
+        url: /v3/api-docs/congestion
+      - name: 지도 & 대체지 추천 서비스
+        url: /v3/api-docs/map
+      - name: 교통 & 버스 서비스
+        url: /v3/api-docs/transport
 
 server:
   port: 8080
