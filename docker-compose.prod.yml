@@ -1,0 +1,20 @@
+# docker-compose.yml 위에 덮어쓰는 프로덕션 오버라이드
+# 사용법: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# DOCKERHUB_USERNAME 환경변수 필요 (서버 ~/.bashrc 등에 export)
+
+services:
+  service-congestion:
+    image: ${DOCKERHUB_USERNAME}/danburn-service-congestion:latest
+
+  service-map:
+    image: ${DOCKERHUB_USERNAME}/danburn-service-map:latest
+
+  service-transport:
+    image: ${DOCKERHUB_USERNAME}/danburn-service-transport:latest
+
+  service-ai:
+    image: ${DOCKERHUB_USERNAME}/danburn-service-ai:latest
+
+  service-gateway:
+    image: ${DOCKERHUB_USERNAME}/danburn-service-gateway:latest
