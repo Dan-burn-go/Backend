@@ -5,13 +5,13 @@ WORKDIR /app
 
 # 루트 빌드 스크립트 복사
 COPY settings.gradle build.gradle ./
-
-# 공유 라이브러리 먼저 복사 (레이어 캐시 활용)
 COPY service-common/build.gradle service-common/build.gradle
-COPY service-common/src           service-common/src
-
-# gateway 모듈 복사
 COPY service-gateway/build.gradle service-gateway/build.gradle
+
+# 의존성만 먼저 다운로드하여 레이어 캐싱 (build.gradle 변경 시에만 재실행)
+RUN gradle :service-gateway:dependencies --no-daemon -q
+
+COPY service-common/src           service-common/src
 COPY service-gateway/src          service-gateway/src
 
 RUN gradle :service-gateway:bootJar --no-daemon -x test
