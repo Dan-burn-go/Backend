@@ -57,7 +57,7 @@
       },
       "targets": [
         {
-          "expr": "rate(http_server_requests_milliseconds_sum{job=~\"$service\", uri!~\"/actuator.*\"}[1m]) / rate(http_server_requests_milliseconds_count{job=~\"$service\", uri!~\"/actuator.*\"}[1m])",
+          "expr": "rate(http_server_requests_milliseconds_sum{job=~\"$service\", uri!~\"/actuator.*\"}[1m]) / (rate(http_server_requests_milliseconds_count{job=~\"$service\", uri!~\"/actuator.*\"}[1m]) > 0)",
           "legendFormat": "{{job}} - {{method}} {{uri}}"
         }
       ]
@@ -121,7 +121,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(http_server_requests_milliseconds_count{job=~\"$service\", status=~\"5..\"}[5m])) / sum(rate(http_server_requests_milliseconds_count{job=~\"$service\"}[5m]))",
+          "expr": "sum(rate(http_server_requests_milliseconds_count{job=~\"$service\", status=~\"5..\"}[5m])) / (sum(rate(http_server_requests_milliseconds_count{job=~\"$service\"}[5m])) > 0)",
           "legendFormat": "5xx Error Rate"
         }
       ]
@@ -147,7 +147,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(http_server_requests_milliseconds_count{job=~\"$service\", status=~\"4..\"}[5m])) / sum(rate(http_server_requests_milliseconds_count{job=~\"$service\"}[5m]))",
+          "expr": "sum(rate(http_server_requests_milliseconds_count{job=~\"$service\", status=~\"4..\"}[5m])) / (sum(rate(http_server_requests_milliseconds_count{job=~\"$service\"}[5m])) > 0)",
           "legendFormat": "4xx Rate"
         }
       ]
@@ -176,7 +176,7 @@
       },
       "targets": [
         {
-          "expr": "topk(10, rate(http_server_requests_milliseconds_sum{job=~\"$service\", uri!~\"/actuator.*\"}[5m]) / rate(http_server_requests_milliseconds_count{job=~\"$service\", uri!~\"/actuator.*\"}[5m]))",
+          "expr": "topk(10, rate(http_server_requests_milliseconds_sum{job=~\"$service\", uri!~\"/actuator.*\"}[5m]) / (rate(http_server_requests_milliseconds_count{job=~\"$service\", uri!~\"/actuator.*\"}[5m]) > 0))",
           "legendFormat": "{{job}} {{method}} {{uri}}",
           "format": "table",
           "instant": true
@@ -195,6 +195,7 @@
         "regex": "service-.*",
         "multi": true,
         "includeAll": true,
+        "allValue": "service-.*",
         "current": { "selected": true, "text": "All", "value": "$__all" }
       }
     ]
