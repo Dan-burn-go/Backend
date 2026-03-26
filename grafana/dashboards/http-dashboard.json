@@ -19,7 +19,7 @@
       },
       "targets": [
         {
-          "expr": "sum by(job) (rate(http_server_requests_seconds_count{job=~\"$service\"}[1m]))",
+          "expr": "sum by(job) (rate(http_server_requests_milliseconds_count{job=~\"$service\"}[1m]))",
           "legendFormat": "{{job}}"
         }
       ]
@@ -38,7 +38,7 @@
       },
       "targets": [
         {
-          "expr": "sum by(uri, method) (rate(http_server_requests_seconds_count{job=~\"$service\", uri!~\"/actuator.*\"}[1m]))",
+          "expr": "sum by(uri, method) (rate(http_server_requests_milliseconds_count{job=~\"$service\", uri!~\"/actuator.*\"}[1m]))",
           "legendFormat": "{{method}} {{uri}}"
         }
       ]
@@ -50,14 +50,14 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
-          "unit": "s",
+          "unit": "ms",
           "custom": { "fillOpacity": 10 }
         },
         "overrides": []
       },
       "targets": [
         {
-          "expr": "rate(http_server_requests_seconds_sum{job=~\"$service\", uri!~\"/actuator.*\"}[1m]) / rate(http_server_requests_seconds_count{job=~\"$service\", uri!~\"/actuator.*\"}[1m])",
+          "expr": "rate(http_server_requests_milliseconds_sum{job=~\"$service\", uri!~\"/actuator.*\"}[1m]) / rate(http_server_requests_milliseconds_count{job=~\"$service\", uri!~\"/actuator.*\"}[1m])",
           "legendFormat": "{{job}} - {{method}} {{uri}}"
         }
       ]
@@ -69,14 +69,14 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
-          "unit": "s",
+          "unit": "ms",
           "custom": { "fillOpacity": 10 }
         },
         "overrides": []
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum by(le, job) (rate(http_server_requests_seconds_bucket{job=~\"$service\", uri!~\"/actuator.*\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by(le, job) (rate(http_server_requests_milliseconds_bucket{job=~\"$service\", uri!~\"/actuator.*\"}[5m])))",
           "legendFormat": "{{job}} P95"
         }
       ]
@@ -88,14 +88,14 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
-          "unit": "s",
+          "unit": "ms",
           "custom": { "fillOpacity": 10 }
         },
         "overrides": []
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, sum by(le, job) (rate(http_server_requests_seconds_bucket{job=~\"$service\", uri!~\"/actuator.*\"}[5m])))",
+          "expr": "histogram_quantile(0.99, sum by(le, job) (rate(http_server_requests_milliseconds_bucket{job=~\"$service\", uri!~\"/actuator.*\"}[5m])))",
           "legendFormat": "{{job}} P99"
         }
       ]
@@ -121,7 +121,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(http_server_requests_seconds_count{job=~\"$service\", status=~\"5..\"}[5m])) / sum(rate(http_server_requests_seconds_count{job=~\"$service\"}[5m]))",
+          "expr": "sum(rate(http_server_requests_milliseconds_count{job=~\"$service\", status=~\"5..\"}[5m])) / sum(rate(http_server_requests_milliseconds_count{job=~\"$service\"}[5m]))",
           "legendFormat": "5xx Error Rate"
         }
       ]
@@ -147,7 +147,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(http_server_requests_seconds_count{job=~\"$service\", status=~\"4..\"}[5m])) / sum(rate(http_server_requests_seconds_count{job=~\"$service\"}[5m]))",
+          "expr": "sum(rate(http_server_requests_milliseconds_count{job=~\"$service\", status=~\"4..\"}[5m])) / sum(rate(http_server_requests_milliseconds_count{job=~\"$service\"}[5m]))",
           "legendFormat": "4xx Rate"
         }
       ]
@@ -160,7 +160,7 @@
       "fieldConfig": { "defaults": {}, "overrides": [] },
       "targets": [
         {
-          "expr": "sum by(status) (increase(http_server_requests_seconds_count{job=~\"$service\"}[1h]))",
+          "expr": "sum by(status) (increase(http_server_requests_milliseconds_count{job=~\"$service\"}[1h]))",
           "legendFormat": "{{status}}"
         }
       ]
@@ -171,12 +171,12 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
-        "defaults": { "unit": "s" },
+        "defaults": { "unit": "ms" },
         "overrides": []
       },
       "targets": [
         {
-          "expr": "topk(10, rate(http_server_requests_seconds_sum{job=~\"$service\", uri!~\"/actuator.*\"}[5m]) / rate(http_server_requests_seconds_count{job=~\"$service\", uri!~\"/actuator.*\"}[5m]))",
+          "expr": "topk(10, rate(http_server_requests_milliseconds_sum{job=~\"$service\", uri!~\"/actuator.*\"}[5m]) / rate(http_server_requests_milliseconds_count{job=~\"$service\", uri!~\"/actuator.*\"}[5m]))",
           "legendFormat": "{{job}} {{method}} {{uri}}",
           "format": "table",
           "instant": true
@@ -191,7 +191,7 @@
         "name": "service",
         "type": "query",
         "datasource": { "type": "prometheus", "uid": "prometheus" },
-        "definition": "label_values(http_server_requests_seconds_count, job)",
+        "definition": "label_values(http_server_requests_milliseconds_count, job)",
         "regex": "service-.*",
         "multi": true,
         "includeAll": true,
