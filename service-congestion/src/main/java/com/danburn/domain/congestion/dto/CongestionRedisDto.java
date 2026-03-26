@@ -9,6 +9,7 @@ import java.time.Instant;
  */
 public record CongestionRedisDto(
         Long locationId,
+        String locationName,
         CongestionLevel congestionLevel,
         Integer minPeopleCount,
         Integer maxPeopleCount,
