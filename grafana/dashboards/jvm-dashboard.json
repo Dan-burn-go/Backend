@@ -73,7 +73,7 @@
       ]
     },
     {
-      "title": "GC Pause Count (per min)",
+      "title": "GC Pause Rate (/s)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
@@ -92,7 +92,7 @@
       ]
     },
     {
-      "title": "GC Pause Duration (per min)",
+      "title": "GC Pause Duration Rate (ms/s)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
