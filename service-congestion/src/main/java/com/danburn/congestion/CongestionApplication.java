@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 @EnableJpaAuditing
-@SpringBootApplication(scanBasePackages = {"com.danburn.congestion", "com.danburn.common", "com.danburn.domain"})
+@SpringBootApplication(scanBasePackages = {"com.danburn.congestion", "com.danburn.common"})
 public class CongestionApplication {
 
     public static void main(String[] args) {

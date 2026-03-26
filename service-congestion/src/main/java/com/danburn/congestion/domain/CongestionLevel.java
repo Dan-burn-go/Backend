@@ -1,4 +1,4 @@
-package com.danburn.domain.congestion.domain;
+package com.danburn.congestion.domain;
 
 import lombok.Getter;
 

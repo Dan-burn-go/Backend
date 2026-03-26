@@ -1,9 +1,9 @@
-package com.danburn.domain.congestion.dto.response;
+package com.danburn.congestion.dto.response;
 
 /**
- * 혼잡도 분석 서비스에서 프론트에 내려주는 응답 DTO
+ * 공공 API에서 오는 데이터를 담는 DTO
  */
-public record CongestionResponse(
+public record CongestionApiResponse(
         String areaName,
         String congestionLevel,
         Integer minPeopleCount,
