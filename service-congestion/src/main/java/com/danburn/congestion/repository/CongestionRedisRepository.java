@@ -1,6 +1,6 @@
-package com.danburn.domain.congestion.repository;
+package com.danburn.congestion.repository;
 
-import com.danburn.domain.congestion.dto.CongestionRedisDto;
+import com.danburn.congestion.dto.CongestionRedisDto;
 
 import java.util.List;
 import java.util.Optional;

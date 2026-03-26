@@ -1,6 +1,6 @@
-package com.danburn.domain.congestion.config;
+package com.danburn.congestion.config;
 
-import com.danburn.domain.congestion.dto.CongestionRedisDto;
+import com.danburn.congestion.dto.CongestionRedisDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;

@@ -1,7 +1,7 @@
-package com.danburn.domain.congestion.dto;
+package com.danburn.congestion.dto;
 
-import com.danburn.domain.congestion.domain.CongestionLevel;
-import com.danburn.domain.congestion.domain.PopulationTrend;
+import com.danburn.congestion.domain.CongestionLevel;
+import com.danburn.congestion.domain.PopulationTrend;
 import java.time.Instant;
 
 /**

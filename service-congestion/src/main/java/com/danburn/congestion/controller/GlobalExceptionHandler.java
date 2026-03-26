@@ -1,4 +1,4 @@
-package com.danburn.domain.congestion.controller;
+package com.danburn.congestion.controller;
 
 import com.danburn.common.exception.GlobalException;
 import com.danburn.common.response.ApiResponse;

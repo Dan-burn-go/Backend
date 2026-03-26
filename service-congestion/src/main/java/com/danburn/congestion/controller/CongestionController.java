@@ -1,8 +1,8 @@
-package com.danburn.domain.congestion.controller;
+package com.danburn.congestion.controller;
 
 import com.danburn.common.response.ApiResponse;
-import com.danburn.domain.congestion.dto.response.CongestionResponse;
-import com.danburn.domain.congestion.service.CongestionService;
+import com.danburn.congestion.dto.response.CongestionResponse;
+import com.danburn.congestion.service.CongestionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
