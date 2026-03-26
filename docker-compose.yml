@@ -46,8 +46,8 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASSWORD:?GF_ADMIN_PASSWORD is not set}
       - GF_SERVER_ROOT_URL=https://grafana.goseoul.today/
     volumes:
-      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
-      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - ./grafana/provisioning/dashboards/dashboard.yml:/otel-lgtm/grafana/conf/provisioning/dashboards/danburn.yaml
+      - ./grafana/dashboards:/otel-lgtm/danburn-dashboards
     networks:
       - backend-net
 
