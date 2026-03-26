@@ -108,6 +108,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "percentunit",
+          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -134,6 +135,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "percentunit",
+          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
