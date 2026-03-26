@@ -1,11 +1,15 @@
-package com.danburn.domain.congestion.repository;
+package com.danburn.congestion.repository;
 
-import com.danburn.domain.congestion.dto.CongestionRedisDto;
+import com.danburn.congestion.dto.CongestionRedisDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanOptions;
+
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -36,13 +40,23 @@ public class CongestionRedisRepositoryImpl implements CongestionRedisRepository 
 
     @Override
     public List<CongestionRedisDto> findAll() {
-        Set<String> keys = congestionRedisTemplate.keys(KEY_PREFIX + "*");
-        if (keys == null || keys.isEmpty()) {
+        Set<String> keys = new HashSet<>();
+        ScanOptions options = ScanOptions.scanOptions().match(KEY_PREFIX + "*").count(1000).build();
+        try (Cursor<String> cursor = congestionRedisTemplate.scan(options)) {
+            while (cursor.hasNext()) {
+                keys.add(cursor.next());
+            }
+        }
+
+        if (keys.isEmpty()) {
             return Collections.emptyList();
         }
 
-        return keys.stream()
-                .map(key -> congestionRedisTemplate.opsForValue().get(key))
+        List<CongestionRedisDto> values = congestionRedisTemplate.opsForValue().multiGet(keys);
+        if (values == null) {
+            return Collections.emptyList();
+        }
+        return values.stream()
                 .filter(Objects::nonNull)
                 .toList();
     }
