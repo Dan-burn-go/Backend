@@ -1,11 +1,11 @@
-package com.danburn.domain.congestion.service;
+package com.danburn.congestion.service;
 
 import com.danburn.common.exception.GlobalException;
-import com.danburn.domain.congestion.domain.Congestion;
-import com.danburn.domain.congestion.dto.CongestionRedisDto;
-import com.danburn.domain.congestion.dto.response.CongestionResponse;
-import com.danburn.domain.congestion.repository.CongestionJpaRepository;
-import com.danburn.domain.congestion.repository.CongestionRedisRepository;
+import com.danburn.congestion.domain.Congestion;
+import com.danburn.congestion.dto.CongestionRedisDto;
+import com.danburn.congestion.dto.response.CongestionResponse;
+import com.danburn.congestion.repository.CongestionJpaRepository;
+import com.danburn.congestion.repository.CongestionRedisRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -69,9 +69,9 @@ public class CongestionService {
                     .toList();
         }
 
-        // 2. Redis가 비어있으면 DB에서 조회
+        // 2. Redis가 비어있으면 DB에서 locationId별 최신 1건만 조회
         log.warn("Redis 캐시 전체 미스 - DB 폴백 조회");
-        return congestionJpaRepository.findAll().stream()
+        return congestionJpaRepository.findLatestPerLocation().stream()
                 .map(this::toResponse)
                 .toList();
     }
