@@ -21,11 +21,11 @@
       },
       "targets": [
         {
-          "expr": "process_cpu_usage{job=~\"service-.*\"}",
+          "expr": "process_cpu_usage{job=~\"$service\"}",
           "legendFormat": "{{job}} - Process CPU"
         },
         {
-          "expr": "system_cpu_usage{job=~\"service-.*\"}",
+          "expr": "system_cpu_usage{job=~\"$service\"}",
           "legendFormat": "{{job}} - System CPU"
         }
       ]
@@ -44,11 +44,11 @@
       },
       "targets": [
         {
-          "expr": "jvm_memory_used_bytes{job=~\"service-.*\", area=\"heap\"}",
+          "expr": "jvm_memory_used_bytes{job=~\"$service\", area=\"heap\"}",
           "legendFormat": "{{job}} - {{id}} Used"
         },
         {
-          "expr": "jvm_memory_max_bytes{job=~\"service-.*\", area=\"heap\"}",
+          "expr": "jvm_memory_max_bytes{job=~\"$service\", area=\"heap\"}",
           "legendFormat": "{{job}} - {{id}} Max"
         }
       ]
@@ -67,7 +67,7 @@
       },
       "targets": [
         {
-          "expr": "jvm_memory_used_bytes{job=~\"service-.*\", area=\"nonheap\"}",
+          "expr": "jvm_memory_used_bytes{job=~\"$service\", area=\"nonheap\"}",
           "legendFormat": "{{job}} - {{id}}"
         }
       ]
@@ -86,7 +86,7 @@
       },
       "targets": [
         {
-          "expr": "rate(jvm_gc_pause_seconds_count{job=~\"service-.*\"}[1m])",
+          "expr": "rate(jvm_gc_pause_seconds_count{job=~\"$service\"}[1m])",
           "legendFormat": "{{job}} - {{cause}}"
         }
       ]
@@ -105,7 +105,7 @@
       },
       "targets": [
         {
-          "expr": "rate(jvm_gc_pause_seconds_sum{job=~\"service-.*\"}[1m])",
+          "expr": "rate(jvm_gc_pause_seconds_sum{job=~\"$service\"}[1m])",
           "legendFormat": "{{job}} - {{cause}}"
         }
       ]
@@ -124,15 +124,15 @@
       },
       "targets": [
         {
-          "expr": "jvm_threads_live_threads{job=~\"service-.*\"}",
+          "expr": "jvm_threads_live_threads{job=~\"$service\"}",
           "legendFormat": "{{job}} - Live"
         },
         {
-          "expr": "jvm_threads_daemon_threads{job=~\"service-.*\"}",
+          "expr": "jvm_threads_daemon_threads{job=~\"$service\"}",
           "legendFormat": "{{job}} - Daemon"
         },
         {
-          "expr": "jvm_threads_peak_threads{job=~\"service-.*\"}",
+          "expr": "jvm_threads_peak_threads{job=~\"$service\"}",
           "legendFormat": "{{job}} - Peak"
         }
       ]
