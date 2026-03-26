@@ -95,6 +95,8 @@ jobs:
       - name: Pull and restart containers
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          GF_ADMIN_USER: ${{ secrets.GF_ADMIN_USER }}
+          GF_ADMIN_PASSWORD: ${{ secrets.GF_ADMIN_PASSWORD }}
         run: |
           cd ~/Backend
           sudo -E docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
