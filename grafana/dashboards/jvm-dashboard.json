@@ -73,7 +73,7 @@
       ]
     },
     {
-      "title": "GC Pause Count (per min)",
+      "title": "GC Pause Rate (/s)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
@@ -86,26 +86,26 @@
       },
       "targets": [
         {
-          "expr": "rate(jvm_gc_pause_seconds_count{job=~\"$service\"}[1m])",
+          "expr": "rate(jvm_gc_pause_milliseconds_count{job=~\"$service\"}[1m])",
           "legendFormat": "{{job}} - {{cause}}"
         }
       ]
     },
     {
-      "title": "GC Pause Duration (per min)",
+      "title": "GC Pause Duration Rate (ms/s)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
-          "unit": "s",
+          "unit": "ms",
           "custom": { "fillOpacity": 10 }
         },
         "overrides": []
       },
       "targets": [
         {
-          "expr": "rate(jvm_gc_pause_seconds_sum{job=~\"$service\"}[1m])",
+          "expr": "rate(jvm_gc_pause_milliseconds_sum{job=~\"$service\"}[1m])",
           "legendFormat": "{{job}} - {{cause}}"
         }
       ]
@@ -124,15 +124,15 @@
       },
       "targets": [
         {
-          "expr": "jvm_threads_live_threads{job=~\"$service\"}",
+          "expr": "jvm_threads_live{job=~\"$service\"}",
           "legendFormat": "{{job}} - Live"
         },
         {
-          "expr": "jvm_threads_daemon_threads{job=~\"$service\"}",
+          "expr": "jvm_threads_daemon{job=~\"$service\"}",
           "legendFormat": "{{job}} - Daemon"
         },
         {
-          "expr": "jvm_threads_peak_threads{job=~\"$service\"}",
+          "expr": "jvm_threads_peak{job=~\"$service\"}",
           "legendFormat": "{{job}} - Peak"
         }
       ]
@@ -149,6 +149,7 @@
         "regex": "service-.*",
         "multi": true,
         "includeAll": true,
+        "allValue": "service-.*",
         "current": { "selected": true, "text": "All", "value": "$__all" }
       }
     ]
