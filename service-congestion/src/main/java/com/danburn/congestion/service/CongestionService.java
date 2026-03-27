@@ -36,21 +36,17 @@ public class CongestionService {
     @Async
     @Transactional
     public void saveAllToDb(List<CongestionRedisDto> dtos) {
-        try {
-            List<Congestion> entities = dtos.stream()
-                    .map(dto -> Congestion.builder()
-                            .locationId(dto.locationId())
-                            .congestionLevel(dto.congestionLevel())
-                            .minPeopleCount(dto.minPeopleCount())
-                            .maxPeopleCount(dto.maxPeopleCount())
-                            .populationTrend(dto.populationTrend())
-                            .build())
-                    .toList();
-            congestionJpaRepository.saveAll(entities);
-            log.debug("[CongestionService] DB 이력 저장 완료 — {}건", entities.size());
-        } catch (Exception e) {
-            log.error("[CongestionService] DB 이력 저장 실패 — {}", e.getMessage(), e);
-        }
+        List<Congestion> entities = dtos.stream()
+                .map(dto -> Congestion.builder()
+                        .locationId(dto.locationId())
+                        .congestionLevel(dto.congestionLevel())
+                        .minPeopleCount(dto.minPeopleCount())
+                        .maxPeopleCount(dto.maxPeopleCount())
+                        .populationTrend(dto.populationTrend())
+                        .build())
+                .toList();
+        congestionJpaRepository.saveAll(entities);
+        log.debug("[CongestionService] DB 이력 저장 완료 — {}건", entities.size());
     }
 
     /**

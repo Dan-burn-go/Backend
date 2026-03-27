@@ -38,7 +38,7 @@ public class CongestionScheduler {
                 try {
                     // TODO: locationId를 areaName 해시로 임시 할당. 실제 API 연동 시 장소 코드 기반으로 변경 필요.
                     CongestionRedisDto dto = new CongestionRedisDto(
-                            (long) Math.abs(apiResponse.areaName().hashCode()),
+                            ((long) apiResponse.areaName().hashCode()) & 0xFFFFFFFFL,
                             apiResponse.areaName(),
                             CongestionLevel.fromDescription(apiResponse.congestionLevel()),
                             apiResponse.minPeopleCount(),
