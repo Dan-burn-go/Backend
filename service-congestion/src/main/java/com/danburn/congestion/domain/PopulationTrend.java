@@ -11,6 +11,16 @@ public enum PopulationTrend {
     private final String description;
 
     PopulationTrend(String description) {
-          this.description = description;
-      }
+        this.description = description;
+    }
+
+    public static PopulationTrend fromDescription(String description) {
+        String trimmed = description.trim();
+        for (PopulationTrend trend : values()) {
+            if (trend.description.equals(trimmed)) {
+                return trend;
+            }
+        }
+        throw new IllegalArgumentException("알 수 없는 인구 추세: " + trimmed);
+    }
 }
