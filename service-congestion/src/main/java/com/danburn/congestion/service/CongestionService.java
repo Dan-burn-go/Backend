@@ -8,9 +8,11 @@ import com.danburn.congestion.repository.CongestionJpaRepository;
 import com.danburn.congestion.repository.CongestionRedisRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 @Slf4j
@@ -22,33 +24,43 @@ public class CongestionService {
     private final CongestionJpaRepository congestionJpaRepository;
 
     /**
-     * Redis + DB 동시 저장 (Scheduler에서 호출)
+     * Redis에 배치 저장 (동기 — 프론트 서빙의 핵심 경로)
      */
-    @Transactional
-    public void save(CongestionRedisDto dto) {
-        // Redis 저장
-        congestionRedisRepository.save(dto);
-
-        // DB 저장 (이력 누적)
-        Congestion entity = Congestion.builder()
-                .locationId(dto.locationId())
-                .congestionLevel(dto.congestionLevel())
-                .minPeopleCount(dto.minPeopleCount())
-                .maxPeopleCount(dto.maxPeopleCount())
-                .populationTrend(dto.populationTrend())
-                .build();
-        congestionJpaRepository.save(entity);
+    public void saveAllToRedis(List<CongestionRedisDto> dtos) {
+        congestionRedisRepository.saveAll(dtos);
     }
 
     /**
-     * 단건 조회: Redis 우선 → DB 폴백
+     * DB에 배치 저장 (비동기 — 이력 보관용, 실패해도 Redis에 영향 없음)
      */
+    @Async
+    @Transactional
+    public void saveAllToDb(List<CongestionRedisDto> dtos) {
+        List<Congestion> entities = dtos.stream()
+                .map(dto -> Congestion.builder()
+                        .locationId(dto.locationId())
+                        .congestionLevel(dto.congestionLevel())
+                        .minPeopleCount(dto.minPeopleCount())
+                        .maxPeopleCount(dto.maxPeopleCount())
+                        .populationTrend(dto.populationTrend())
+                        .build())
+                .toList();
+        congestionJpaRepository.saveAll(entities);
+        log.debug("[CongestionService] DB 이력 저장 완료 — {}건", entities.size());
+    }
+
+    /**
+     * 오래된 데이터 삭제 (DataCleanupScheduler에서 호출)
+     */
+    @Transactional
+    public int deleteOlderThan(Instant cutoff) {
+        return congestionJpaRepository.deleteByCreatedAtBefore(cutoff);
+    }
+
     public CongestionResponse findByLocationId(Long locationId) {
-        // 1. Redis에서 조회
         return congestionRedisRepository.findByLocationId(locationId)
                 .map(this::toResponse)
                 .orElseGet(() -> {
-                    // 2. Redis에 없으면 DB에서 최신 1건 조회
                     log.warn("Redis 캐시 미스 - locationId: {}, DB 폴백 조회", locationId);
                     return congestionJpaRepository.findTopByLocationIdOrderByCreatedAtDesc(locationId)
                             .map(this::toResponse)
@@ -57,11 +69,7 @@ public class CongestionService {
                 });
     }
 
-    /**
-     * 전체 조회: Redis 우선 → DB 폴백
-     */
     public List<CongestionResponse> findAll() {
-        // 1. Redis에서 전체 조회
         List<CongestionRedisDto> redisList = congestionRedisRepository.findAll();
         if (!redisList.isEmpty()) {
             return redisList.stream()
@@ -69,7 +77,6 @@ public class CongestionService {
                     .toList();
         }
 
-        // 2. Redis가 비어있으면 DB에서 locationId별 최신 1건만 조회
         log.warn("Redis 캐시 전체 미스 - DB 폴백 조회");
         return congestionJpaRepository.findLatestPerLocation().stream()
                 .map(this::toResponse)
@@ -90,7 +97,7 @@ public class CongestionService {
     private CongestionResponse toResponse(Congestion entity) {
         return new CongestionResponse(
                 entity.getLocationId(),
-                null, // DB에는 locationName이 없음 — 추후 locations 테이블 JOIN으로 개선
+                null,
                 entity.getCongestionLevel().getDescription(),
                 entity.getMinPeopleCount(),
                 entity.getMaxPeopleCount(),

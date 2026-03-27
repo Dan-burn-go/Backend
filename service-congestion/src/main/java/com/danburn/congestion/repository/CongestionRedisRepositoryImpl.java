@@ -2,7 +2,9 @@ package com.danburn.congestion.repository;
 
 import com.danburn.congestion.dto.CongestionRedisDto;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.stereotype.Repository;
 
 import org.springframework.data.redis.core.Cursor;
@@ -23,12 +25,29 @@ public class CongestionRedisRepositoryImpl implements CongestionRedisRepository 
     private final RedisTemplate<String, CongestionRedisDto> congestionRedisTemplate;
 
     private static final String KEY_PREFIX = "congestion:";
-    private static final long TTL_MINUTES = 10;
+    private static final long TTL_MINUTES = 15;
 
     @Override
     public void save(CongestionRedisDto dto) {
         String key = KEY_PREFIX + dto.locationId();
         congestionRedisTemplate.opsForValue().set(key, dto, TTL_MINUTES, TimeUnit.MINUTES);
+    }
+
+    @Override
+    public void saveAll(List<CongestionRedisDto> dtos) {
+        congestionRedisTemplate.executePipelined(new SessionCallback<>() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public Object execute(RedisOperations operations) {
+                RedisOperations<String, CongestionRedisDto> ops =
+                        (RedisOperations<String, CongestionRedisDto>) operations;
+                for (CongestionRedisDto dto : dtos) {
+                    String key = KEY_PREFIX + dto.locationId();
+                    ops.opsForValue().set(key, dto, TTL_MINUTES, TimeUnit.MINUTES);
+                }
+                return null;
+            }
+        });
     }
 
     @Override
