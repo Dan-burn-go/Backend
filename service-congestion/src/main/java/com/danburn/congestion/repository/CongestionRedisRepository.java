@@ -13,5 +13,7 @@ public interface CongestionRedisRepository {
 
     List<CongestionRedisDto> findAll();
 
+    void saveAll(List<CongestionRedisDto> dtos);
+
     void delete(Long locationId);
 }
