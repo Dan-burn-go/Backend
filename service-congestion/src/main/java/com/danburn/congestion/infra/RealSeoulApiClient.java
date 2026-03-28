@@ -32,12 +32,11 @@ public class RealSeoulApiClient implements SeoulApiClient {
 
     private static final String URL_TEMPLATE =
             "http://openapi.seoul.go.kr:8088/{apiKey}/json/citydata_ppltn/1/5/{areaName}";
-    private static final int THREAD_POOL_SIZE = 10;
-
     public RealSeoulApiClient(
             RestTemplateBuilder restTemplateBuilder,
             ObjectMapper objectMapper,
-            @Value("${seoul.api.key}") String apiKey) {
+            @Value("${seoul.api.key}") String apiKey,
+            @Value("${seoul.api.thread-pool-size:10}") int threadPoolSize) {
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalArgumentException("seoul.api.key must be configured");
         }
@@ -47,7 +46,7 @@ public class RealSeoulApiClient implements SeoulApiClient {
                 .build();
         this.objectMapper = objectMapper;
         this.apiKey = apiKey;
-        this.executor = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
+        this.executor = Executors.newFixedThreadPool(threadPoolSize);
     }
 
     @PreDestroy

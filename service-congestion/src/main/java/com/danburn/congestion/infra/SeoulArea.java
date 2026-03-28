@@ -146,7 +146,9 @@ public enum SeoulArea {
         return name;
     }
 
+    private static final List<SeoulArea> ALL = List.of(values());
+
     public static List<SeoulArea> all() {
-        return List.of(values());
+        return ALL;
     }
 }
