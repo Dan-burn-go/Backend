@@ -42,6 +42,10 @@ logging:
   level:
     com.danburn: DEBUG
 
+seoul:
+  api:
+    key: ${SEOUL_API_KEY:}
+
 congestion:
   scheduler:
     interval: ${CONGESTION_SCHEDULER_INTERVAL:300000}

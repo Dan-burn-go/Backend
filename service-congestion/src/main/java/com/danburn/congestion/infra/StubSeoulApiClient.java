@@ -12,7 +12,7 @@ import java.util.List;
  * 실제 SeoulApiClient 구현 시 이 클래스를 삭제한다.
  */
 @Slf4j
-@Profile({"local", "dev"})
+@Profile("stub")
 @Component
 public class StubSeoulApiClient implements SeoulApiClient {
 
