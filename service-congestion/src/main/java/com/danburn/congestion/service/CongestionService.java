@@ -57,21 +57,13 @@ public class CongestionService {
                         log.warn("[CongestionService] forecast JSON 변환 실패 - areaCode={}", dto.areaCode(), e);
                         forecastJson = "[]";
                     }
-                    LocalDateTime popTime;
-                    try {
-                        popTime = LocalDateTime.parse(dto.populationTime(), POPULATION_TIME_FORMATTER);
-                    } catch (DateTimeParseException e) {
-                        log.warn("[CongestionService] populationTime 파싱 실패 - areaCode={}, value={}",
-                                dto.areaCode(), dto.populationTime());
-                        popTime = null;
-                    }
                     return Congestion.builder()
                             .areaCode(dto.areaCode())
                             .congestionLevel(CongestionLevel.fromDescription(dto.congestionLevel()))
                             .congestionMessage(dto.congestionMessage())
                             .minPeopleCount(dto.minPeopleCount())
                             .maxPeopleCount(dto.maxPeopleCount())
-                            .populationTime(popTime)
+                            .populationTime(parsePopulationTime(dto.populationTime()))
                             .forecast(forecastJson)
                             .build();
                 })
@@ -162,5 +154,15 @@ public class CongestionService {
                         : null,
                 forecasts
         );
+    }
+
+    private LocalDateTime parsePopulationTime(String time) {
+        if (time == null || time.isBlank()) return null;
+        try {
+            return LocalDateTime.parse(time, POPULATION_TIME_FORMATTER);
+        } catch (DateTimeParseException e) {
+            log.warn("[CongestionService] populationTime 파싱 실패 - value={}", time);
+            return null;
+        }
     }
 }
