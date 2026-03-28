@@ -29,7 +29,7 @@ public class CongestionRedisRepositoryImpl implements CongestionRedisRepository 
 
     @Override
     public void save(CongestionRedisDto dto) {
-        String key = KEY_PREFIX + dto.locationId();
+        String key = KEY_PREFIX + dto.areaCode();
         congestionRedisTemplate.opsForValue().set(key, dto, TTL_MINUTES, TimeUnit.MINUTES);
     }
 
@@ -42,7 +42,7 @@ public class CongestionRedisRepositoryImpl implements CongestionRedisRepository 
                 RedisOperations<String, CongestionRedisDto> ops =
                         (RedisOperations<String, CongestionRedisDto>) operations;
                 for (CongestionRedisDto dto : dtos) {
-                    String key = KEY_PREFIX + dto.locationId();
+                    String key = KEY_PREFIX + dto.areaCode();
                     ops.opsForValue().set(key, dto, TTL_MINUTES, TimeUnit.MINUTES);
                 }
                 return null;
@@ -51,8 +51,8 @@ public class CongestionRedisRepositoryImpl implements CongestionRedisRepository 
     }
 
     @Override
-    public Optional<CongestionRedisDto> findByLocationId(Long locationId) {
-        String key = KEY_PREFIX + locationId;
+    public Optional<CongestionRedisDto> findByAreaCode(String areaCode) {
+        String key = KEY_PREFIX + areaCode;
         CongestionRedisDto dto = congestionRedisTemplate.opsForValue().get(key);
         return Optional.ofNullable(dto);
     }
@@ -81,8 +81,8 @@ public class CongestionRedisRepositoryImpl implements CongestionRedisRepository 
     }
 
     @Override
-    public void delete(Long locationId) {
-        String key = KEY_PREFIX + locationId;
+    public void delete(String areaCode) {
+        String key = KEY_PREFIX + areaCode;
         congestionRedisTemplate.delete(key);
     }
 }

@@ -9,11 +9,11 @@ public interface CongestionRedisRepository {
 
     void save(CongestionRedisDto dto);
 
-    Optional<CongestionRedisDto> findByLocationId(Long locationId);
+    Optional<CongestionRedisDto> findByAreaCode(String areaCode);
 
     List<CongestionRedisDto> findAll();
 
     void saveAll(List<CongestionRedisDto> dtos);
 
-    void delete(Long locationId);
+    void delete(String areaCode);
 }

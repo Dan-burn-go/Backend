@@ -1,7 +1,5 @@
 package com.danburn.congestion.scheduler;
 
-import com.danburn.congestion.domain.CongestionLevel;
-import com.danburn.congestion.domain.PopulationTrend;
 import com.danburn.congestion.dto.CongestionRedisDto;
 import com.danburn.congestion.dto.response.CongestionApiResponse;
 import com.danburn.congestion.infra.SeoulApiClient;
@@ -11,8 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -33,23 +31,29 @@ public class CongestionScheduler {
             List<CongestionApiResponse> responses = seoulApiClient.fetchAll();
             List<CongestionRedisDto> dtos = new ArrayList<>();
 
-            for (int i = 0; i < responses.size(); i++) {
-                CongestionApiResponse apiResponse = responses.get(i);
+            for (CongestionApiResponse apiResponse : responses) {
                 try {
-                    // TODO: locationId를 areaName 해시로 임시 할당. 실제 API 연동 시 장소 코드 기반으로 변경 필요.
+                    List<CongestionRedisDto.ForecastDto> forecasts = apiResponse.forecasts() != null
+                            ? apiResponse.forecasts().stream()
+                                .map(f -> new CongestionRedisDto.ForecastDto(
+                                        f.forecastTime(), f.congestionLevel(),
+                                        f.minPeopleCount(), f.maxPeopleCount()))
+                                .toList()
+                            : Collections.emptyList();
+
                     CongestionRedisDto dto = new CongestionRedisDto(
-                            ((long) apiResponse.areaName().hashCode()) & 0xFFFFFFFFL,
-                            apiResponse.areaName(),
-                            CongestionLevel.fromDescription(apiResponse.congestionLevel()),
+                            apiResponse.areaCode(),
+                            apiResponse.congestionLevel(),
+                            apiResponse.congestionMessage(),
                             apiResponse.minPeopleCount(),
                             apiResponse.maxPeopleCount(),
-                            PopulationTrend.fromDescription(apiResponse.populationTrend()),
-                            Instant.now()
+                            apiResponse.populationTime(),
+                            forecasts
                     );
                     dtos.add(dto);
                 } catch (Exception e) {
-                    log.warn("[CongestionScheduler] 장소 데이터 변환 실패 - areaName={}, reason={}",
-                            apiResponse.areaName(), e.getMessage());
+                    log.warn("[CongestionScheduler] 장소 데이터 변환 실패 - areaCode={}, reason={}",
+                            apiResponse.areaCode(), e.getMessage());
                 }
             }
 

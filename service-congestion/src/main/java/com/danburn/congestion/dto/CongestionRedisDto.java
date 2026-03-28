@@ -1,18 +1,23 @@
 package com.danburn.congestion.dto;
 
-import com.danburn.congestion.domain.CongestionLevel;
-import com.danburn.congestion.domain.PopulationTrend;
-import java.time.Instant;
+import java.util.List;
 
 /**
- * Redis에 저장되는 데이터를 담는 DTO
+ * Redis에 저장되는 혼잡도 데이터 DTO
  */
 public record CongestionRedisDto(
-        Long locationId,
-        String locationName,
-        CongestionLevel congestionLevel,
+        String areaCode,
+        String congestionLevel,
+        String congestionMessage,
         Integer minPeopleCount,
         Integer maxPeopleCount,
-        PopulationTrend populationTrend,
-        Instant createdAt
-) {}
+        String populationTime,
+        List<ForecastDto> forecasts
+) {
+    public record ForecastDto(
+            String forecastTime,
+            String congestionLevel,
+            Integer minPeopleCount,
+            Integer maxPeopleCount
+    ) {}
+}
