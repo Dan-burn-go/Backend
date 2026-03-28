@@ -11,7 +11,6 @@ import java.util.Optional;
 
 public interface AlternativeLocationJpaRepository extends JpaRepository<AlternativeLocation, AlternativeLocationId> {
   
-  @Query("SELECT a FROM AlternativeLocation a WHERE a.locationId = :locationId ORDER BY a.priority ASC")
-  List<AlternativeLocation> findByLocationId(@Param("locationId") Long locationId);
+  List<AlternativeLocation> findByLocationLocationIdOrderByPriorityAsc(Long locationId);
   Optional<AlternativeLocation> findByLocationIdAndAlternativeLocationId(Long locationId, Long alternativeLocationId);
 }
