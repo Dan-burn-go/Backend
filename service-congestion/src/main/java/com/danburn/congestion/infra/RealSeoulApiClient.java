@@ -3,10 +3,11 @@ package com.danburn.congestion.infra;
 import com.danburn.congestion.dto.response.CongestionApiResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -14,21 +15,22 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
-@Profile("!stub")
+@ConditionalOnProperty(name = "seoul.api.key", matchIfMissing = false)
 @Component
 public class RealSeoulApiClient implements SeoulApiClient {
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final String apiKey;
+    private final ExecutorService executor;
 
     private static final String BASE_URL = "http://openapi.seoul.go.kr:8088";
     private static final int THREAD_POOL_SIZE = 10;
@@ -37,35 +39,48 @@ public class RealSeoulApiClient implements SeoulApiClient {
             RestTemplateBuilder restTemplateBuilder,
             ObjectMapper objectMapper,
             @Value("${seoul.api.key}") String apiKey) {
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new IllegalArgumentException("seoul.api.key must be configured");
+        }
         this.restTemplate = restTemplateBuilder
                 .connectTimeout(Duration.ofSeconds(5))
                 .readTimeout(Duration.ofSeconds(10))
                 .build();
         this.objectMapper = objectMapper;
         this.apiKey = apiKey;
+        this.executor = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
+    }
+
+    @PreDestroy
+    void shutdown() {
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 
     @Override
     public List<CongestionApiResponse> fetchAll() {
-        ExecutorService executor = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
-        try {
-            List<CompletableFuture<CongestionApiResponse>> futures = SeoulArea.all().stream()
-                    .map(area -> CompletableFuture.supplyAsync(() -> fetchOne(area), executor))
-                    .toList();
+        List<CompletableFuture<CongestionApiResponse>> futures = SeoulArea.all().stream()
+                .map(area -> CompletableFuture.supplyAsync(() -> fetchOne(area), executor))
+                .toList();
 
-            return futures.stream()
-                    .map(future -> {
-                        try {
-                            return future.join();
-                        } catch (Exception e) {
-                            return null;
-                        }
-                    })
-                    .filter(Objects::nonNull)
-                    .toList();
-        } finally {
-            executor.shutdown();
-        }
+        return futures.stream()
+                .map(future -> {
+                    try {
+                        return future.join();
+                    } catch (Exception e) {
+                        log.error("[SeoulApiClient] 비동기 작업 실패", e);
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .toList();
     }
 
     private CongestionApiResponse fetchOne(SeoulArea area) {
@@ -77,8 +92,8 @@ public class RealSeoulApiClient implements SeoulApiClient {
             String response = restTemplate.getForObject(url, String.class);
             return parseResponse(response, area);
         } catch (Exception e) {
-            log.warn("[SeoulApiClient] API 호출 실패 - area={}, reason={}",
-                    area.getName(), e.getMessage());
+            log.warn("[SeoulApiClient] API 호출 실패 - area={}, error={}",
+                    area.getName(), e.getClass().getSimpleName());
             return null;
         }
     }
@@ -125,8 +140,8 @@ public class RealSeoulApiClient implements SeoulApiClient {
                     forecasts
             );
         } catch (Exception e) {
-            log.warn("[SeoulApiClient] 응답 파싱 실패 - area={}, reason={}",
-                    area.getName(), e.getMessage());
+            log.warn("[SeoulApiClient] 응답 파싱 실패 - area={}, error={}",
+                    area.getName(), e.getClass().getSimpleName());
             return null;
         }
     }

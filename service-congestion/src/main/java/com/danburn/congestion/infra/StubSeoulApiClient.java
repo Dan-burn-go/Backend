@@ -2,17 +2,17 @@ package com.danburn.congestion.infra;
 
 import com.danburn.congestion.dto.response.CongestionApiResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 /**
- * API 키 발급 전까지 사용하는 더미 구현체.
- * 실제 SeoulApiClient 구현 시 이 클래스를 삭제한다.
+ * API 키 미설정 시 사용되는 더미 구현체.
+ * seoul.api.key가 설정되면 RealSeoulApiClient가 활성화되고 이 Bean은 생성되지 않는다.
  */
 @Slf4j
-@Profile("stub")
+@ConditionalOnMissingBean(RealSeoulApiClient.class)
 @Component
 public class StubSeoulApiClient implements SeoulApiClient {
 
