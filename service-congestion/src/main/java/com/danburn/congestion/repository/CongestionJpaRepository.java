@@ -12,12 +12,12 @@ import java.util.Optional;
 
 public interface CongestionJpaRepository extends JpaRepository<Congestion, Long> {
 
-    Optional<Congestion> findTopByLocationIdOrderByCreatedAtDesc(Long locationId);
+    Optional<Congestion> findTopByAreaCodeOrderByCreatedAtDesc(String areaCode);
 
-    List<Congestion> findByLocationId(Long locationId);
+    List<Congestion> findByAreaCode(String areaCode);
 
     @Query("SELECT c FROM Congestion c WHERE c.createdAt = " +
-            "(SELECT MAX(c2.createdAt) FROM Congestion c2 WHERE c2.locationId = c.locationId)")
+            "(SELECT MAX(c2.createdAt) FROM Congestion c2 WHERE c2.areaCode = c.areaCode)")
     List<Congestion> findLatestPerLocation();
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
