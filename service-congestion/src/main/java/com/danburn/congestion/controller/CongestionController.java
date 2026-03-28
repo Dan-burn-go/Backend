@@ -23,9 +23,9 @@ public class CongestionController {
         return ApiResponse.ok(congestionService.findAll());
     }
 
-    @GetMapping("/{locationId}")
-    public ApiResponse<CongestionResponse> findByLocationId(
-            @PathVariable Long locationId) {
-        return ApiResponse.ok(congestionService.findByLocationId(locationId));
+    @GetMapping("/{areaCode}")
+    public ApiResponse<CongestionResponse> findByAreaCode(
+            @PathVariable String areaCode) {
+        return ApiResponse.ok(congestionService.findByAreaCode(areaCode));
     }
 }

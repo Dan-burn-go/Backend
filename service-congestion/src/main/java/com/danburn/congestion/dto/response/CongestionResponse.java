@@ -1,13 +1,23 @@
 package com.danburn.congestion.dto.response;
 
+import java.util.List;
+
 /**
- * 혼잡도 분석 서비스에서 프론트에 내려주는 응답 DTO
+ * 프론트에 내려주는 혼잡도 응답 DTO
  */
 public record CongestionResponse(
-        Long locationId,
-        String locationName,
+        String areaCode,
         String congestionLevel,
+        String congestionMessage,
         Integer minPeopleCount,
         Integer maxPeopleCount,
-        String populationTrend
-) {}
+        String populationTime,
+        List<ForecastResponse> forecasts
+) {
+    public record ForecastResponse(
+            String forecastTime,
+            String congestionLevel,
+            Integer minPeopleCount,
+            Integer maxPeopleCount
+    ) {}
+}
