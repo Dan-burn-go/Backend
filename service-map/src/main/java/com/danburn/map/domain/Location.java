@@ -14,7 +14,7 @@ public class Location extends BaseEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  @Column(name = "location_id", unique = true, nullable = false)
+  @Column(name = "location_id")
   private Long locationId;
 
   @Column(name = "area_code",unique = true, nullable = false)
@@ -30,7 +30,7 @@ public class Location extends BaseEntity {
   private Double longitude;
 
   @Builder
-  public Location(String apiAreaCode, String locationName, double latitude, double longitude) {
+  public Location(String apiAreaCode, String locationName, Double latitude, Double longitude) {
     this.apiAreaCode = apiAreaCode;
     this.locationName = locationName;
     this.latitude = latitude;
