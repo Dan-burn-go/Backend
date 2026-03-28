@@ -11,8 +11,6 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +30,8 @@ public class RealSeoulApiClient implements SeoulApiClient {
     private final String apiKey;
     private final ExecutorService executor;
 
-    private static final String BASE_URL = "http://openapi.seoul.go.kr:8088";
+    private static final String URL_TEMPLATE =
+            "http://openapi.seoul.go.kr:8088/{apiKey}/json/citydata_ppltn/1/5/{areaName}";
     private static final int THREAD_POOL_SIZE = 10;
 
     public RealSeoulApiClient(
@@ -85,11 +84,8 @@ public class RealSeoulApiClient implements SeoulApiClient {
 
     private CongestionApiResponse fetchOne(SeoulArea area) {
         try {
-            String encodedName = URLEncoder.encode(area.getName(), StandardCharsets.UTF_8);
-            String url = String.format("%s/%s/json/citydata_ppltn/1/5/%s",
-                    BASE_URL, apiKey, encodedName);
-
-            String response = restTemplate.getForObject(url, String.class);
+            String response = restTemplate.getForObject(
+                    URL_TEMPLATE, String.class, apiKey, area.getName());
             return parseResponse(response, area);
         } catch (Exception e) {
             log.warn("[SeoulApiClient] API 호출 실패 - area={}, error={}",
