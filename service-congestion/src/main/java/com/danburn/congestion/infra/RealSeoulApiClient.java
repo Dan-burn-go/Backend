@@ -73,7 +73,7 @@ public class RealSeoulApiClient implements SeoulApiClient {
                     try {
                         return future.join();
                     } catch (Exception e) {
-                        log.error("[SeoulApiClient] 비동기 작업 실패", e);
+                        log.error("[SeoulApiClient] 비동기 작업 실패: {}", e.getMessage());
                         return null;
                     }
                 })
