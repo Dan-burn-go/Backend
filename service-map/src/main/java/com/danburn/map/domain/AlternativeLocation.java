@@ -14,20 +14,22 @@ import lombok.NoArgsConstructor;
 public class AlternativeLocation extends BaseEntity {
 
   @Id
-  @Column(name = "location_id", nullable = false)
-  private Long locationId;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "location_id", nullable = false)
+  private Location location;
 
   @Id
-  @Column(name = "alternative_location_id", nullable = false)
-  private Long alternativeLocationId;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "alternative_location_id", nullable = false)
+  private Location alternativeLocation;
 
   @Column(name = "priority")
   private Integer priority;
 
   @Builder
-  public AlternativeLocation(Long locationId, Long alternativeLocationId, Integer priority) {
-    this.locationId = locationId;
-    this.alternativeLocationId = alternativeLocationId;
+  public AlternativeLocation(Location location, Location alternativeLocation, Integer priority) {
+    this.location = location;
+    this.alternativeLocation = alternativeLocation;
     this.priority = priority;
   }
 }

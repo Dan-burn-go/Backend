@@ -14,6 +14,6 @@ import java.io.Serializable;
 @AllArgsConstructor
 @EqualsAndHashCode
 public class AlternativeLocationId implements Serializable {
-    private Long locationId;
-    private Long alternativeLocationId;
+    private Location location;
+    private Location alternativeLocation;
 }
