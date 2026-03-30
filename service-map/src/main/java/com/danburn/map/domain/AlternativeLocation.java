@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @IdClass(AlternativeLocationId.class)
+@Table(name = "alternative_locations")
 public class AlternativeLocation extends BaseEntity {
 
   @Id

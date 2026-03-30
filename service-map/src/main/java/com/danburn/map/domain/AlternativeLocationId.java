@@ -6,9 +6,7 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 
-/**
- * 복합키 AlternativeLocationId Class
- */
+// 복합키를 위한 IdClass
 
 @NoArgsConstructor
 @AllArgsConstructor
