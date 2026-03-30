@@ -6,14 +6,12 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 
-/**
- * 복합키 AlternativeLocationId Class
- */
+// 복합키를 위한 IdClass
 
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode
 public class AlternativeLocationId implements Serializable {
-    private Location location;
-    private Location alternativeLocation;
+    private Long location;
+    private Long alternativeLocation;
 }

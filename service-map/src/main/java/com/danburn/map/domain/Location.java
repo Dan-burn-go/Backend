@@ -10,6 +10,7 @@ import lombok.AccessLevel;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "locations")
 public class Location extends BaseEntity {
 
   @Id
@@ -17,7 +18,7 @@ public class Location extends BaseEntity {
   @Column(name = "location_id")
   private Long locationId;
 
-  @Column(name = "area_code",unique = true, nullable = false)
+  @Column(name = "area_code", unique = true, nullable = false)
   private String apiAreaCode;
 
   @Column(name = "location_name", nullable = false, length = 50)
