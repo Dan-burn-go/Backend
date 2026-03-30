@@ -2,6 +2,7 @@ package com.danburn.map.domain;
 
 import com.danburn.common.domain.BaseEntity;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
