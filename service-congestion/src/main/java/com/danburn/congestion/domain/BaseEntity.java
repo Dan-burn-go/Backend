@@ -1,4 +1,4 @@
-package com.danburn.common.domain;
+package com.danburn.congestion.domain;
 
 import java.time.Instant;
 

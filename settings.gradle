@@ -4,5 +4,5 @@ include 'service-common'
 include 'service-gateway'
 include 'service-congestion'
 include 'service-map'
-include 'service-transport'
+include 'service-mobility'
 // service-ai는 Python(FastAPI)이므로 Gradle에서 관리하지 않음
