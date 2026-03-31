@@ -133,11 +133,11 @@ services:
     networks:
       - backend-net
 
-  # 교통 & 버스 서비스 (Redis)
-  service-transport:
+  # 교통 & 이동수단 서비스 (Redis)
+  service-mobility:
     build:
       context: .
-      dockerfile: service-transport/Dockerfile
+      dockerfile: service-mobility/Dockerfile
     ports:
       - "8084:8084"
     environment:
@@ -184,14 +184,14 @@ services:
     environment:
       - CONGESTION_SERVICE_URL=http://service-congestion:8082
       - MAP_SERVICE_URL=http://service-map:8083
-      - TRANSPORT_SERVICE_URL=http://service-transport:8084
+      - MOBILITY_SERVICE_URL=http://service-mobility:8084
       - AI_SERVICE_URL=http://service-ai:8085
       - OTLP_URL=http://observability:4318/v1/metrics
       - LOKI_URL=http://observability:3100/loki/api/v1/push
     depends_on:
       - service-congestion
       - service-map
-      - service-transport
+      - service-mobility
       - service-ai
     networks:
       - backend-net

@@ -1,10 +1,6 @@
 spring:
   application:
     name: service-gateway
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
   cloud:
     gateway:
       routes:
@@ -18,11 +14,11 @@ spring:
           uri: ${MAP_SERVICE_URL:http://localhost:8083}
           predicates:
             - Path=/api/map/**
-        # 교통 & 버스 서비스
-        - id: transport-route
-          uri: ${TRANSPORT_SERVICE_URL:http://localhost:8084}
+        # 교통 & 이동수단 서비스
+        - id: mobility-route
+          uri: ${MOBILITY_SERVICE_URL:http://localhost:8084}
           predicates:
-            - Path=/api/transport/**
+            - Path=/api/mobility/**
         # AI 분석 서비스
         - id: ai-route
           uri: ${AI_SERVICE_URL:http://localhost:8085}
@@ -41,12 +37,12 @@ spring:
             - Path=/v3/api-docs/map
           filters:
             - RewritePath=/v3/api-docs/map, /v3/api-docs
-        - id: transport-api-docs
-          uri: ${TRANSPORT_SERVICE_URL:http://localhost:8084}
+        - id: mobility-api-docs
+          uri: ${MOBILITY_SERVICE_URL:http://localhost:8084}
           predicates:
-            - Path=/v3/api-docs/transport
+            - Path=/v3/api-docs/mobility
           filters:
-            - RewritePath=/v3/api-docs/transport, /v3/api-docs
+            - RewritePath=/v3/api-docs/mobility, /v3/api-docs
 
 springdoc:
   swagger-ui:
@@ -55,8 +51,8 @@ springdoc:
         url: /v3/api-docs/congestion
       - name: 지도 & 대체지 추천 서비스
         url: /v3/api-docs/map
-      - name: 교통 & 버스 서비스
-        url: /v3/api-docs/transport
+      - name: 교통 & 이동수단 서비스
+        url: /v3/api-docs/mobility
 
 server:
   port: 8080
