@@ -68,6 +68,7 @@ jobs:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           GF_ADMIN_USER: ${{ secrets.GF_ADMIN_USER }}
           GF_ADMIN_PASSWORD: ${{ secrets.GF_ADMIN_PASSWORD }}
+          SEOUL_API_KEY: ${{ secrets.SEOUL_API_KEY }}
         run: |
           cd ~/Backend
           for i in 1 2 3; do
