@@ -6,7 +6,6 @@ services:
     image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: danburn_map
     ports:
       - "3306:3306"
     volumes:
@@ -28,6 +27,22 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
+      retries: 5
+    networks:
+      - backend-net
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
       retries: 5
     networks:
       - backend-net
@@ -71,10 +86,16 @@ services:
       - CONGESTION_SCHEDULER_INTERVAL=${CONGESTION_SCHEDULER_INTERVAL:-300000}
       - CONGESTION_CLEANUP_CRON=${CONGESTION_CLEANUP_CRON:-0 0 3 * * *}
       - CONGESTION_CLEANUP_RETENTION_DAYS=${CONGESTION_CLEANUP_RETENTION_DAYS:-7}
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=${RABBITMQ_USER:-guest}
+      - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_PASS:-guest}
     depends_on:
       redis:
         condition: service_healthy
       mysql:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - backend-net
@@ -122,6 +143,18 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8085:8085"
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=${RABBITMQ_USER:-guest}
+      - RABBITMQ_PASS=${RABBITMQ_PASS:-guest}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - backend-net
 
