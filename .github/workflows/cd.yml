@@ -73,11 +73,11 @@ jobs:
         run: |
           cd ~/Backend
           for i in 1 2 3; do
-            sudo -E infisical run --env=prod -- docker compose -f docker-compose.yml -f docker-compose.prod.yml pull && break
+            sudo -E infisical run --env=dev -- docker compose -f docker-compose.yml -f docker-compose.prod.yml pull && break
             echo "Pull failed (attempt $i/3), retrying in 10s..."
             sleep 10
           done
-          sudo -E infisical run --env=prod -- docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+          sudo -E infisical run --env=dev -- docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
       - name: Start Portainer (if not running)
         run: |
