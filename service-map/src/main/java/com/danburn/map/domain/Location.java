@@ -1,6 +1,5 @@
 package com.danburn.map.domain;
 
-import com.danburn.common.domain.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;

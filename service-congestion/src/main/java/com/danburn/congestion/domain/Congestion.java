@@ -11,7 +11,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Builder;
-import com.danburn.common.domain.BaseEntity;
 
 import java.time.LocalDateTime;
 
