@@ -1,0 +1,19 @@
+#!/bin/bash
+# 서비스별 DB 유저 생성 및 권한 부여
+# 환경변수 미설정 시 root 사용 (로컬 개발 환경)
+
+if [ -n "$CONGESTION_DB_USERNAME" ] && [ "$CONGESTION_DB_USERNAME" != "root" ]; then
+  mysql -uroot -p"$MYSQL_ROOT_PASSWORD" <<EOF
+CREATE USER IF NOT EXISTS '${CONGESTION_DB_USERNAME}'@'%' IDENTIFIED BY '${CONGESTION_DB_PASSWORD}';
+GRANT ALL PRIVILEGES ON danburn_congestion.* TO '${CONGESTION_DB_USERNAME}'@'%';
+FLUSH PRIVILEGES;
+EOF
+fi
+
+if [ -n "$MAP_DB_USERNAME" ] && [ "$MAP_DB_USERNAME" != "root" ]; then
+  mysql -uroot -p"$MYSQL_ROOT_PASSWORD" <<EOF
+CREATE USER IF NOT EXISTS '${MAP_DB_USERNAME}'@'%' IDENTIFIED BY '${MAP_DB_PASSWORD}';
+GRANT ALL PRIVILEGES ON danburn_map.* TO '${MAP_DB_USERNAME}'@'%';
+FLUSH PRIVILEGES;
+EOF
+fi

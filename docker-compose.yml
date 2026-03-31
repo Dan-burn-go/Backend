@@ -6,6 +6,10 @@ services:
     image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      CONGESTION_DB_USERNAME: ${CONGESTION_DB_USERNAME:-}
+      CONGESTION_DB_PASSWORD: ${CONGESTION_DB_PASSWORD:-}
+      MAP_DB_USERNAME: ${MAP_DB_USERNAME:-}
+      MAP_DB_PASSWORD: ${MAP_DB_PASSWORD:-}
     ports:
       - "3306:3306"
     volumes:
