@@ -1,0 +1,21 @@
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
+
+congestion:
+  scheduler:
+    interval: 300000
+    initial-delay: 10000
+  cleanup:
+    cron: "0 0 3 * * *"
+    retention-days: 7
