@@ -92,7 +92,7 @@ class CongestionControllerTest {
                 .willThrow(new GlobalException(404, "해당 장소의 혼잡도 데이터가 없습니다. areaCode: POI999"));
 
         mockMvc.perform(get("/api/congestion/POI999"))
-                .andExpect(status().isOk())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("해당 장소의 혼잡도 데이터가 없습니다. areaCode: POI999"));
     }
