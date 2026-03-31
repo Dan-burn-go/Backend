@@ -76,6 +76,7 @@ jobs:
           MAP_DB_PASSWORD: ${{ secrets.MAP_DB_PASSWORD }}
           RABBITMQ_USER: ${{ secrets.RABBITMQ_USER }}
           RABBITMQ_PASS: ${{ secrets.RABBITMQ_PASS }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
         run: |
           cd ~/Backend
           for i in 1 2 3; do
