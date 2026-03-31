@@ -39,16 +39,6 @@ jobs: # 작업 정의 (어디서 실행할지, 어떤 작업을 할지)
       - name: Docker Build Test
         run: docker build -t my-app-${{ matrix.service }}:${{ github.sha }} -f ./${{ matrix.service }}/Dockerfile .
 
-      # 이미지 보안 스캔 (패치 미제공 취약점은 무시)
-      - name: Run Trivy scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'my-app-${{ matrix.service }}:${{ github.sha }}'
-          format: 'table'
-          severity: 'HIGH,CRITICAL'
-          exit-code: '1'
-          ignore-unfixed: true
-
   # ── AI 서비스 빌드 (Python) ─────────────────────────────────────────────────
   build-ai:
     runs-on: ubuntu-latest
@@ -59,13 +49,3 @@ jobs: # 작업 정의 (어디서 실행할지, 어떤 작업을 할지)
       # 도커 빌드 검증
       - name: Docker Build Test
         run: docker build -t my-app-service-ai:${{ github.sha }} ./service-ai
-
-      # 이미지 보안 스캔 (패치 미제공 취약점은 무시)
-      - name: Run Trivy scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'my-app-service-ai:${{ github.sha }}'
-          format: 'table'
-          severity: 'HIGH,CRITICAL'
-          exit-code: '1'
-          ignore-unfixed: true

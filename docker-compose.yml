@@ -11,6 +11,7 @@ services:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
       interval: 10s
@@ -60,12 +61,16 @@ services:
     ports:
       - "8082:8082"
     environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-local}
       - SPRING_DATA_REDIS_HOST=redis
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/danburn_map?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/danburn_congestion?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root
       - OTLP_URL=http://observability:4318/v1/metrics
       - LOKI_URL=http://observability:3100/loki/api/v1/push
+      - CONGESTION_SCHEDULER_INTERVAL=${CONGESTION_SCHEDULER_INTERVAL:-300000}
+      - CONGESTION_CLEANUP_CRON=${CONGESTION_CLEANUP_CRON:-0 0 3 * * *}
+      - CONGESTION_CLEANUP_RETENTION_DAYS=${CONGESTION_CLEANUP_RETENTION_DAYS:-7}
     depends_on:
       redis:
         condition: service_healthy

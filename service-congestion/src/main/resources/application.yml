@@ -2,7 +2,7 @@ spring:
   application:
     name: service-congestion
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/danburn_map?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/danburn_congestion?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
     username: ${SPRING_DATASOURCE_USERNAME:root}
     password: ${SPRING_DATASOURCE_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -41,3 +41,15 @@ logging:
     url: ${LOKI_URL:http://localhost:3100/loki/api/v1/push}
   level:
     com.danburn: DEBUG
+
+seoul:
+  api:
+    key: ${SEOUL_API_KEY:}
+
+congestion:
+  scheduler:
+    interval: ${CONGESTION_SCHEDULER_INTERVAL:300000}
+    initial-delay: ${CONGESTION_SCHEDULER_INITIAL_DELAY:10000}
+  cleanup:
+    cron: ${CONGESTION_CLEANUP_CRON:0 0 3 * * *}
+    retention-days: ${CONGESTION_CLEANUP_RETENTION_DAYS:7}

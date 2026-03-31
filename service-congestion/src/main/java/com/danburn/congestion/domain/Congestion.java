@@ -1,4 +1,4 @@
-package com.danburn.domain.congestion.domain;
+package com.danburn.congestion.domain;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -13,6 +13,8 @@ import lombok.NoArgsConstructor;
 import lombok.Builder;
 import com.danburn.common.domain.BaseEntity;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -23,12 +25,15 @@ public class Congestion extends BaseEntity {
     @Column(name = "congestion_id")
     private Long id;
 
-    @Column(name = "location_id")
-    private Long locationId;
+    @Column(name = "area_code", nullable = false, length = 20)
+    private String areaCode;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "congestion_level")
+    @Column(name = "congestion_level", nullable = false)
     private CongestionLevel congestionLevel;
+
+    @Column(name = "congestion_message", length = 500)
+    private String congestionMessage;
 
     @Column(name = "min_people_count")
     private Integer minPeopleCount;
@@ -36,21 +41,27 @@ public class Congestion extends BaseEntity {
     @Column(name = "max_people_count")
     private Integer maxPeopleCount;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "population_trend")
-    private PopulationTrend populationTrend;
+    @Column(name = "population_time")
+    private LocalDateTime populationTime;
+
+    @Column(name = "congestion_forecast", columnDefinition = "json")
+    private String forecast;
 
     @Builder
     private Congestion(
-            Long locationId,
+            String areaCode,
             CongestionLevel congestionLevel,
+            String congestionMessage,
             Integer minPeopleCount,
             Integer maxPeopleCount,
-            PopulationTrend populationTrend) {
-        this.locationId = locationId;
+            LocalDateTime populationTime,
+            String forecast) {
+        this.areaCode = areaCode;
         this.congestionLevel = congestionLevel;
+        this.congestionMessage = congestionMessage;
         this.minPeopleCount = minPeopleCount;
         this.maxPeopleCount = maxPeopleCount;
-        this.populationTrend = populationTrend;
+        this.populationTime = populationTime;
+        this.forecast = forecast;
     }
 }
