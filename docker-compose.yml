@@ -79,8 +79,8 @@ services:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-local}
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/danburn_congestion?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-      - SPRING_DATASOURCE_USERNAME=${MYSQL_USERNAME:-root}
-      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD:-root}
+      - SPRING_DATASOURCE_USERNAME=${CONGESTION_DB_USERNAME:-root}
+      - SPRING_DATASOURCE_PASSWORD=${CONGESTION_DB_PASSWORD:-root}
       - OTLP_URL=http://observability:4318/v1/metrics
       - LOKI_URL=http://observability:3100/loki/api/v1/push
       - CONGESTION_SCHEDULER_INTERVAL=${CONGESTION_SCHEDULER_INTERVAL:-300000}
@@ -110,8 +110,8 @@ services:
       - "8083:8083"
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/danburn_map?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-      - SPRING_DATASOURCE_USERNAME=${MYSQL_USERNAME:-root}
-      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD:-root}
+      - SPRING_DATASOURCE_USERNAME=${MAP_DB_USERNAME:-root}
+      - SPRING_DATASOURCE_PASSWORD=${MAP_DB_PASSWORD:-root}
       - OTLP_URL=http://observability:4318/v1/metrics
       - LOKI_URL=http://observability:3100/loki/api/v1/push
     depends_on:

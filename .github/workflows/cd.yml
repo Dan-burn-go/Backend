@@ -70,8 +70,10 @@ jobs:
           GF_ADMIN_PASSWORD: ${{ secrets.GF_ADMIN_PASSWORD }}
           SEOUL_API_KEY: ${{ secrets.SEOUL_API_KEY }}
           MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
-          MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
-          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          CONGESTION_DB_USERNAME: ${{ secrets.CONGESTION_DB_USERNAME }}
+          CONGESTION_DB_PASSWORD: ${{ secrets.CONGESTION_DB_PASSWORD }}
+          MAP_DB_USERNAME: ${{ secrets.MAP_DB_USERNAME }}
+          MAP_DB_PASSWORD: ${{ secrets.MAP_DB_PASSWORD }}
           RABBITMQ_USER: ${{ secrets.RABBITMQ_USER }}
           RABBITMQ_PASS: ${{ secrets.RABBITMQ_PASS }}
         run: |
