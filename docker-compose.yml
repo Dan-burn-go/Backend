@@ -5,14 +5,14 @@ services:
   mysql:
     image: mysql:8.0
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
     ports:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       - ./mysql/init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p${MYSQL_ROOT_PASSWORD:-root}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -79,8 +79,8 @@ services:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-local}
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/danburn_congestion?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_DATASOURCE_USERNAME=${MYSQL_USERNAME:-root}
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD:-root}
       - OTLP_URL=http://observability:4318/v1/metrics
       - LOKI_URL=http://observability:3100/loki/api/v1/push
       - CONGESTION_SCHEDULER_INTERVAL=${CONGESTION_SCHEDULER_INTERVAL:-300000}
@@ -110,8 +110,8 @@ services:
       - "8083:8083"
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/danburn_map?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_DATASOURCE_USERNAME=${MYSQL_USERNAME:-root}
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD:-root}
       - OTLP_URL=http://observability:4318/v1/metrics
       - LOKI_URL=http://observability:3100/loki/api/v1/push
     depends_on:
