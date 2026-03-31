@@ -102,5 +102,10 @@ jobs:
           sudo -E docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
           sudo -E docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
+      - name: Start Portainer (if not running)
+        run: |
+          cd ~/Backend
+          sudo docker compose -f docker-compose.portainer.yml up -d
+
       - name: Clean up old images
         run: sudo docker image prune -f
