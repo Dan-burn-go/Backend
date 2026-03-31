@@ -17,8 +17,7 @@
 - RabbitMQ (메시지 큐)
 - Python 3.12 (FastAPI) — AI Analysis Service
 - Docker Compose
-- Monitoring: Grafana + Prometheus + cAdvisor → Slack 알림
-- Logging: Grafana + Grafana Loki
+- Monitoring + Logging: grafana/otel-lgtm → Slack 알림
 - Frontend: Vercel (React)
 
 ---
