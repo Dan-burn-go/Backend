@@ -10,8 +10,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.DefaultUriBuilderFactory;
 
+
+import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,8 +32,6 @@ public class RealSeoulApiClient implements SeoulApiClient {
     private final String apiKey;
     private final ExecutorService executor;
 
-    private static final String URL_TEMPLATE =
-            "http://openapi.seoul.go.kr:8088/{apiKey}/json/citydata_ppltn/1/5/{areaName}";
     public RealSeoulApiClient(
             RestTemplateBuilder restTemplateBuilder,
             ObjectMapper objectMapper,
@@ -41,10 +40,7 @@ public class RealSeoulApiClient implements SeoulApiClient {
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalArgumentException("seoul.api.key must be configured");
         }
-        DefaultUriBuilderFactory uriFactory = new DefaultUriBuilderFactory();
-        uriFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.NONE);
         this.restTemplate = restTemplateBuilder
-                .uriTemplateHandler(uriFactory)
                 .connectTimeout(Duration.ofSeconds(5))
                 .readTimeout(Duration.ofSeconds(10))
                 .build();
@@ -87,12 +83,14 @@ public class RealSeoulApiClient implements SeoulApiClient {
 
     private CongestionApiResponse fetchOne(SeoulArea area) {
         try {
-            String response = restTemplate.getForObject(
-                    URL_TEMPLATE, String.class, apiKey, area.getName());
+            String encodedName = area.getName().replace(" ", "%20");
+            String url = "http://openapi.seoul.go.kr:8088/" + apiKey
+                    + "/json/citydata_ppltn/1/5/" + encodedName;
+            String response = restTemplate.getForObject(URI.create(url), String.class);
             return parseResponse(response, area);
         } catch (Exception e) {
-            log.warn("[SeoulApiClient] API 호출 실패 - area={}, error={}",
-                    area.getName(), e.getClass().getSimpleName());
+            log.warn("[SeoulApiClient] API 호출 실패 - area={}, error={}, message={}",
+                    area.getName(), e.getClass().getSimpleName(), e.getMessage());
             return null;
         }
     }

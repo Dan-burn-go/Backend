@@ -25,4 +25,4 @@ WORKDIR /app
 COPY --from=builder /app/service-congestion/build/libs/*.jar app.jar
 
 EXPOSE 8082
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Djava.net.preferIPv4Stack=true", "-jar", "app.jar"]
