@@ -61,7 +61,11 @@ jobs:
       - name: Pull latest code
         run: |
           cd ~/Backend
-          git pull origin main
+          for i in 1 2 3; do
+            git pull origin main && break
+            echo "git pull failed (attempt $i/3), retrying in 10s..."
+            sleep 10
+          done
 
       - name: Pull and restart containers
         env:
