@@ -1,14 +1,11 @@
 spring:
   application:
-    name: service-transport
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+    name: service-mobility
   data:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: 6379
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
 
 server:
   port: 8084

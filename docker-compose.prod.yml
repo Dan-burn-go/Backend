@@ -10,8 +10,8 @@ services:
   service-map:
     image: ${DOCKERHUB_USERNAME}/danburn-service-map:latest
 
-  service-transport:
-    image: ${DOCKERHUB_USERNAME}/danburn-service-transport:latest
+  service-mobility:
+    image: ${DOCKERHUB_USERNAME}/danburn-service-mobility:latest
 
   service-ai:
     image: ${DOCKERHUB_USERNAME}/danburn-service-ai:latest

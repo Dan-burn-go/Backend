@@ -21,9 +21,9 @@ jobs:
           - service: service-congestion
             context: .
             dockerfile: service-congestion/Dockerfile
-          - service: service-transport
+          - service: service-mobility
             context: .
-            dockerfile: service-transport/Dockerfile
+            dockerfile: service-mobility/Dockerfile
           - service: service-ai
             context: ./service-ai
             dockerfile: ./service-ai/Dockerfile
@@ -69,14 +69,15 @@ jobs:
           GF_ADMIN_USER: ${{ secrets.GF_ADMIN_USER }}
           GF_ADMIN_PASSWORD: ${{ secrets.GF_ADMIN_PASSWORD }}
           SEOUL_API_KEY: ${{ secrets.SEOUL_API_KEY }}
+          INFISICAL_TOKEN: ${{ secrets.INFISICAL_TOKEN }}
         run: |
           cd ~/Backend
           for i in 1 2 3; do
-            sudo -E docker compose -f docker-compose.yml -f docker-compose.prod.yml pull && break
+            sudo -E infisical run --env=prod -- docker compose -f docker-compose.yml -f docker-compose.prod.yml pull && break
             echo "Pull failed (attempt $i/3), retrying in 10s..."
             sleep 10
           done
-          sudo -E docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+          sudo -E infisical run --env=prod -- docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
       - name: Start Portainer (if not running)
         run: |

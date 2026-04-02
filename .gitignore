@@ -49,6 +49,7 @@ Thumbs.db
 # Application specific
 .claudignore
 .env
+.infisical.json
 logs/
 *.tmp
 
