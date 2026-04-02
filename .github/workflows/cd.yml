@@ -78,7 +78,6 @@ jobs:
           done
           sudo -E infisical run --env=prod -- docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
-<<<<<<< HEAD
       - name: Ensure MySQL DB users exist
         env:
           INFISICAL_TOKEN: ${{ secrets.INFISICAL_TOKEN }}
