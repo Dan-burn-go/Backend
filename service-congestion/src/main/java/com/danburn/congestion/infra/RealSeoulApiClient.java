@@ -10,6 +10,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.DefaultUriBuilderFactory;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -40,7 +41,10 @@ public class RealSeoulApiClient implements SeoulApiClient {
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalArgumentException("seoul.api.key must be configured");
         }
+        DefaultUriBuilderFactory uriFactory = new DefaultUriBuilderFactory();
+        uriFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.NONE);
         this.restTemplate = restTemplateBuilder
+                .uriTemplateHandler(uriFactory)
                 .connectTimeout(Duration.ofSeconds(5))
                 .readTimeout(Duration.ofSeconds(10))
                 .build();
