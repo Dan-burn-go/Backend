@@ -80,7 +80,7 @@ public class CongestionScheduler {
         List<String> areaCodesToAnalyze = stateTracker.filterAreaCodesForAnalysis(dtos);
 
         Map<String, CongestionRedisDto> dtoMap = dtos.stream()
-                .collect(Collectors.toMap(CongestionRedisDto::areaCode, dto -> dto));
+                .collect(Collectors.toMap(CongestionRedisDto::areaCode, dto -> dto, (existing, replacement) -> existing));
 
         for (String areaCode : areaCodesToAnalyze) {
             try {

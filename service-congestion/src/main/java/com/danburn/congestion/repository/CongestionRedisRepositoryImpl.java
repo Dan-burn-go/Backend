@@ -86,10 +86,7 @@ public class CongestionRedisRepositoryImpl implements CongestionRedisRepository 
                 .map(code -> KEY_PREFIX + code)
                 .toList();
         List<CongestionRedisDto> values = congestionRedisTemplate.opsForValue().multiGet(keys);
-        if (values == null) {
-            return Collections.emptyList();
-        }
-        return values;
+        return values != null ? values : Collections.nCopies(areaCodes.size(), null);
     }
 
     @Override
