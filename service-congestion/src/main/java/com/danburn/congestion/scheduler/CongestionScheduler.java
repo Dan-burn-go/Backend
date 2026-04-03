@@ -1,6 +1,5 @@
 package com.danburn.congestion.scheduler;
 
-import com.danburn.congestion.domain.CongestionLevel;
 import com.danburn.congestion.dto.CongestionRedisDto;
 import com.danburn.congestion.dto.response.CongestionApiResponse;
 import com.danburn.congestion.event.CongestionBusyEvent;
@@ -16,6 +15,8 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -76,20 +77,23 @@ public class CongestionScheduler {
     }
 
     private void checkAndPublishBusyEvents(List<CongestionRedisDto> dtos) {
-        for (CongestionRedisDto dto : dtos) {
+        List<String> areaCodesToAnalyze = stateTracker.filterAreaCodesForAnalysis(dtos);
+
+        Map<String, CongestionRedisDto> dtoMap = dtos.stream()
+                .collect(Collectors.toMap(CongestionRedisDto::areaCode, dto -> dto));
+
+        for (String areaCode : areaCodesToAnalyze) {
             try {
-                CongestionLevel current = CongestionLevel.fromDescription(dto.congestionLevel());
-                if (stateTracker.shouldRequestAnalysis(dto.areaCode(), current)) {
-                    eventPublisher.publishBusyEvent(new CongestionBusyEvent(
-                            dto.areaCode(),
-                            dto.congestionLevel(),
-                            dto.maxPeopleCount(),
-                            dto.populationTime()
-                    ));
-                }
+                CongestionRedisDto dto = dtoMap.get(areaCode);
+                eventPublisher.publishBusyEvent(new CongestionBusyEvent(
+                        dto.areaCode(),
+                        dto.congestionLevel(),
+                        dto.maxPeopleCount(),
+                        dto.populationTime()
+                ));
             } catch (Exception e) {
                 log.warn("[CongestionScheduler] 이벤트 발행 실패 - areaCode={}, reason={}",
-                        dto.areaCode(), e.getMessage());
+                        areaCode, e.getMessage());
             }
         }
     }
