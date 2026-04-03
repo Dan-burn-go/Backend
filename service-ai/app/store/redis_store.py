@@ -1,4 +1,3 @@
-import json
 import logging
 
 from redis.asyncio import Redis
@@ -25,13 +24,19 @@ class RedisStore:
         if self._redis:
             await self._redis.aclose()
 
+    def _check_connected(self) -> None:
+        if self._redis is None:
+            raise RuntimeError("RedisStore.connect()가 호출되지 않았습니다")
+
     async def save(self, result: AnalysisResult) -> None:
+        self._check_connected()
         key = KEY_PREFIX + result.area_code
         await self._redis.set(key, result.model_dump_json(), ex=TTL_SECONDS)
 
     async def save_all(self, results: list[AnalysisResult]) -> None:
         if not results:
             return
+        self._check_connected()
         pipe = self._redis.pipeline()
         for r in results:
             pipe.set(KEY_PREFIX + r.area_code, r.model_dump_json(), ex=TTL_SECONDS)

@@ -72,8 +72,17 @@ class BatchProcessor:
         logger.info("[BatchProcessor] 배치 처리 시작 - %d건", len(events))
         try:
             results = await self._analyzer.analyze(events)
-            await self._redis_store.save_all(results)
-            await self._mysql_store.save_all(results)
-            logger.info("[BatchProcessor] 배치 처리 완료 - %d건 저장", len(results))
         except Exception as e:
-            logger.error("[BatchProcessor] 배치 처리 실패 - %s", e)
+            logger.error("[BatchProcessor] AI 분석 실패 - %s, %d건 재삽입", e, len(events))
+            async with self._lock:
+                self._buffer.extend(events)
+            return
+        try:
+            await self._redis_store.save_all(results)
+        except Exception as e:
+            logger.error("[BatchProcessor] Redis 저장 실패 - %s", e)
+        try:
+            await self._mysql_store.save_all(results)
+        except Exception as e:
+            logger.error("[BatchProcessor] MySQL 저장 실패 - %s", e)
+        logger.info("[BatchProcessor] 배치 처리 완료 - %d건", len(results))

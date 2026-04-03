@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 SYSTEM_PROMPT = (
     "당신은 서울시 실시간 혼잡도 데이터를 분석하는 전문가입니다. "
     "각 지역의 혼잡 원인을 간결하게 분석하세요. "
-    "응답은 반드시 JSON 배열로, 각 항목에 area_code와 analysis_message 필드를 포함하세요."
+    '응답은 반드시 {"results": [...]} 형태의 JSON 객체로, '
+    "각 항목에 area_code와 analysis_message 필드를 포함하세요."
 )
 
 
@@ -44,14 +45,22 @@ class OpenAIAnalyzer(AIAnalyzer):
         )
         response.raise_for_status()
 
-        content = response.json()["choices"][0]["message"]["content"]
-        parsed = json.loads(content)
-        items = parsed if isinstance(parsed, list) else parsed.get("results", [])
+        try:
+            content = response.json()["choices"][0]["message"]["content"]
+            parsed = json.loads(content)
+        except (KeyError, IndexError, json.JSONDecodeError) as e:
+            logger.error("[OpenAI] 응답 파싱 실패 - %s", e)
+            return []
+
+        items = parsed.get("results", parsed.get("data", []))
 
         event_map = {e.area_code: e for e in events}
         results = []
         for item in items:
-            area_code = item["area_code"]
+            area_code = item.get("area_code")
+            analysis_message = item.get("analysis_message")
+            if not area_code or not analysis_message:
+                continue
             event = event_map.get(area_code)
             if event is None:
                 continue
@@ -59,7 +68,7 @@ class OpenAIAnalyzer(AIAnalyzer):
                 AnalysisResult(
                     area_code=area_code,
                     congestion_level=event.congestion_level,
-                    analysis_message=item["analysis_message"],
+                    analysis_message=analysis_message,
                     population_time=event.population_time,
                 )
             )

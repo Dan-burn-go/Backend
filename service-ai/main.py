@@ -36,6 +36,7 @@ async def lifespan(app: FastAPI):
     # shutdown
     await consumer.stop()
     await batch_processor.stop()
+    await analyzer.close()
     await redis_store.close()
     await mysql_store.close()
     logger.info("[AI Service] 종료 완료")
