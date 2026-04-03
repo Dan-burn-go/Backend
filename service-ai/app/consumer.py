@@ -12,6 +12,7 @@ from app.models.schemas import CongestionEvent
 logger = logging.getLogger(__name__)
 
 MAX_RECONNECT_DELAY = 30
+MAX_RETRY_COUNT = 2
 
 
 class RabbitMQConsumer:
@@ -56,6 +57,7 @@ class RabbitMQConsumer:
                 delay = min(delay * 2, MAX_RECONNECT_DELAY)
 
     async def _on_message(self, message: AbstractIncomingMessage) -> None:
+        retry_count = (message.headers or {}).get("x-retry-count", 0)
         try:
             body = json.loads(message.body.decode())
             event = CongestionEvent(
@@ -67,5 +69,9 @@ class RabbitMQConsumer:
             await self._batch.add(event)
             await message.ack()
         except Exception as e:
-            logger.error("[Consumer] 메시지 처리 실패 - %s", e)
-            await message.nack(requeue=True)
+            if retry_count < MAX_RETRY_COUNT:
+                logger.warning("[Consumer] 메시지 처리 실패 (%d/%d) - %s", retry_count + 1, MAX_RETRY_COUNT, e)
+                await message.nack(requeue=True)
+            else:
+                logger.error("[Consumer] 메시지 최종 실패, 폐기 - %s", e)
+                await message.nack(requeue=False)
