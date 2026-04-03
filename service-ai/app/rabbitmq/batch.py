@@ -9,6 +9,8 @@ from app.store.redis_store import RedisStore
 
 logger = logging.getLogger(__name__)
 
+MAX_BATCH_RETRY = 2
+
 
 class BatchProcessor:
     """메시지를 버퍼에 모아 배치로 AI 분석 → 결과 저장한다."""
@@ -23,6 +25,7 @@ class BatchProcessor:
         self._redis_store = redis_store
         self._mysql_store = mysql_store
         self._buffer: list[CongestionEvent] = []
+        self._retry_count: int = 0
         self._lock = asyncio.Lock()
         self._timer_task: asyncio.Task | None = None
         self._running = False
@@ -72,10 +75,17 @@ class BatchProcessor:
         logger.info("[BatchProcessor] 배치 처리 시작 - %d건", len(events))
         try:
             results = await self._analyzer.analyze(events)
+            self._retry_count = 0
         except Exception as e:
-            logger.error("[BatchProcessor] AI 분석 실패 - %s, %d건 재삽입", e, len(events))
-            async with self._lock:
-                self._buffer.extend(events)
+            self._retry_count += 1
+            if self._retry_count <= MAX_BATCH_RETRY:
+                logger.warning("[BatchProcessor] AI 분석 실패 (%d/%d) - %s, %d건 재삽입",
+                               self._retry_count, MAX_BATCH_RETRY, e, len(events))
+                async with self._lock:
+                    self._buffer.extend(events)
+            else:
+                logger.error("[BatchProcessor] AI 분석 최종 실패 - %s, %d건 폐기", e, len(events))
+                self._retry_count = 0
             return
         try:
             await self._redis_store.save_all(results)

@@ -50,7 +50,7 @@ class OpenAIAnalyzer(AIAnalyzer):
             parsed = json.loads(content)
         except (KeyError, IndexError, json.JSONDecodeError) as e:
             logger.error("[OpenAI] 응답 파싱 실패 - %s", e)
-            return []
+            raise
 
         items = parsed.get("results", parsed.get("data", []))
 
