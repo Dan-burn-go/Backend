@@ -2,8 +2,10 @@ package com.danburn.congestion.scheduler;
 
 import com.danburn.congestion.dto.CongestionRedisDto;
 import com.danburn.congestion.dto.response.CongestionApiResponse;
+import com.danburn.congestion.event.CongestionEventPublisher;
 import com.danburn.congestion.infra.SeoulApiClient;
 import com.danburn.congestion.service.CongestionService;
+import com.danburn.congestion.service.CongestionStateTracker;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +30,12 @@ class CongestionSchedulerTest {
     @Mock
     private CongestionService congestionService;
 
+    @Mock
+    private CongestionStateTracker stateTracker;
+
+    @Mock
+    private CongestionEventPublisher eventPublisher;
+
     @InjectMocks
     private CongestionScheduler congestionScheduler;
 
@@ -49,6 +57,7 @@ class CongestionSchedulerTest {
                 createApiResponse("POI001", "붐빔"),
                 createApiResponse("POI002", "여유")
         ));
+        given(stateTracker.filterAreaCodesForAnalysis(anyList())).willReturn(Collections.emptyList());
 
         congestionScheduler.fetchAndSave();
 
@@ -87,6 +96,7 @@ class CongestionSchedulerTest {
                 "2026-04-01 14:00", null
         );
         given(seoulApiClient.fetchAll()).willReturn(List.of(responseWithNullForecasts));
+        given(stateTracker.filterAreaCodesForAnalysis(anyList())).willReturn(Collections.emptyList());
 
         congestionScheduler.fetchAndSave();
 

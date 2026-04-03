@@ -15,5 +15,7 @@ public interface CongestionRedisRepository {
 
     void saveAll(List<CongestionRedisDto> dtos);
 
+    List<CongestionRedisDto> findAllByAreaCodes(List<String> areaCodes);
+
     void delete(String areaCode);
 }

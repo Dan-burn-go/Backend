@@ -1,4 +1,4 @@
-package com.danburn.congestion.config;
+package com.danburn.congestion.config.rabbitmq;
 
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
