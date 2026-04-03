@@ -22,9 +22,9 @@ class OpenAIAnalyzer(AIAnalyzer):
 
     def __init__(self) -> None:
         self._client = httpx.AsyncClient(
-            base_url="https://api.openai.com/v1",
+            base_url=settings.openai_base_url,
             headers={"Authorization": f"Bearer {settings.openai_api_key}"},
-            timeout=60.0,
+            timeout=httpx.Timeout(60.0, read=300.0),
         )
 
     async def analyze(self, events: list[CongestionEvent]) -> list[AnalysisResult]:
@@ -38,9 +38,9 @@ class OpenAIAnalyzer(AIAnalyzer):
                 "model": settings.openai_model,
                 "messages": [
                     {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_content},
+                    {"role": "user", "content": f"{user_content}\n\n결과는 Markdown 없이 순수 JSON 객체로만 응답하세요."},
                 ],
-                "response_format": {"type": "json_object"},
+                # Ollama/Qwen 호환: response_format은 OpenAI 전용이므로 프롬프트로 JSON 출력 유도
             },
         )
         response.raise_for_status()
