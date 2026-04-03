@@ -18,12 +18,14 @@ class Base(DeclarativeBase):
 class AiReport(Base):
     __tablename__ = "ai_report"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column("ai_report_id", Integer, primary_key=True, autoincrement=True)
     area_code = Column(String(50), nullable=False, index=True)
     congestion_level = Column(String(20), nullable=False)
     analysis_message = Column(Text, nullable=False)
     population_time = Column(String(30), nullable=False)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
+    deleted_at = Column(DateTime)
 
 
 class MySQLStore:
@@ -32,10 +34,6 @@ class MySQLStore:
     def __init__(self) -> None:
         self._engine = create_async_engine(settings.mysql_url, pool_size=5)
         self._session_factory = async_sessionmaker(self._engine, expire_on_commit=False)
-
-    async def init_tables(self) -> None:
-        async with self._engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
 
     async def close(self) -> None:
         await self._engine.dispose()

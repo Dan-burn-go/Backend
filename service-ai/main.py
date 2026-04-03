@@ -27,7 +27,6 @@ consumer = RabbitMQConsumer(batch_processor)
 async def lifespan(app: FastAPI):
     # startup
     await redis_store.connect()
-    await mysql_store.init_tables()
     await batch_processor.start()
     await consumer.start()
     logger.info("[AI Service] 시작 완료")
