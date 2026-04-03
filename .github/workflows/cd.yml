@@ -130,7 +130,9 @@ jobs:
   deploy:
     runs-on: self-hosted
     needs: [ detect-changes, build-and-push ]
+    
     if: needs.detect-changes.outputs.has_changes == 'true'
+
 
     steps:
       - name: Pull latest code
