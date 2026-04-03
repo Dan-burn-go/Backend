@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o-mini"
 
     # RabbitMQ
-    rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
+    rabbitmq_url: str  # amqp://{user}:{pass}@{host}:{port}/
     rabbitmq_queue: str = "ai.congestion.analysis"
 
     # Batch
@@ -16,11 +16,11 @@ class Settings(BaseSettings):
     batch_max_size: int = 10
 
     # Redis
-    redis_url: str = "redis://localhost:6379/0"
+    redis_url: str  # redis://:{password}@{host}:{port}/{db}
     redis_report_ttl_hours: int = 4
 
     # MySQL
-    mysql_url: str = "mysql+aiomysql://root:root@localhost:3306/danburn_ai"
+    mysql_url: str  # mysql+aiomysql://{user}:{pass}@{host}:{port}/{db}
 
     model_config = {"env_prefix": "", "env_file": ".env"}
 
