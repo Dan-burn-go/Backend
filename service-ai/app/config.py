@@ -12,8 +12,8 @@ class Settings(BaseSettings):
     rabbitmq_queue: str = "ai.congestion.analysis"
 
     # Batch
-    batch_window_seconds: float = 10.0
-    batch_max_size: int = 50
+    batch_window_seconds: float = 2.0
+    batch_max_size: int = 10
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
