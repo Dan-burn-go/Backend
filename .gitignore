@@ -56,3 +56,5 @@ logs/
 # Claude Code / OMC
 .omc/
 .claude/
+CLAUDE.md
+**/CLAUDE.md
