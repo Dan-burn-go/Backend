@@ -159,17 +159,15 @@ services:
     ports:
       - "8085:8085"
     environment:
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_PORT=5672
-      - RABBITMQ_USER=${RABBITMQ_USER:-guest}
-      - RABBITMQ_PASS=${RABBITMQ_PASS:-guest}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      - MYSQL_URL=mysql+aiomysql://${CONGESTION_DB_USERNAME:-root}:${CONGESTION_DB_PASSWORD:-root}@mysql:3306/danburn_congestion
     depends_on:
       rabbitmq:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      mysql:
         condition: service_healthy
     networks:
       - backend-net
