@@ -8,8 +8,8 @@ from fastapi import FastAPI
 
 from app.ai.factory import create_analyzer
 from app.config import settings
-from app.batch import BatchProcessor
-from app.consumer import RabbitMQConsumer
+from app.rabbitmq.batch import BatchProcessor
+from app.rabbitmq.consumer import RabbitMQConsumer
 from app.store.mysql_store import MySQLStore
 from app.store.redis_store import RedisStore
 

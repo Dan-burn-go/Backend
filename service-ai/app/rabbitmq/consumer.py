@@ -5,7 +5,7 @@ import logging
 import aio_pika
 from aio_pika.abc import AbstractIncomingMessage
 
-from app.batch import BatchProcessor
+from app.rabbitmq.batch import BatchProcessor
 from app.config import settings
 from app.models.schemas import CongestionEvent
 
