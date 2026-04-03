@@ -24,7 +24,7 @@ class OpenAIAnalyzer(AIAnalyzer):
         self._client = httpx.AsyncClient(
             base_url="https://api.openai.com/v1",
             headers={"Authorization": f"Bearer {settings.openai_api_key}"},
-            timeout=30.0,
+            timeout=60.0,
         )
 
     async def analyze(self, events: list[CongestionEvent]) -> list[AnalysisResult]:
