@@ -4,7 +4,8 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # AI API
     ai_provider: str = "stub"  # "stub" | "openai"
-    openai_api_key: str = ""
+    openai_base_url: str = "https://api.openai.com/v1"  # 오라클 자체 호스팅 시 Cloudflare Tunnel URL로 변경 (Infisical)
+    openai_api_key: str = ""  # 오라클 AI 서버 접근 시 해당 서버의 API Key 필요 (Infisical)
     openai_model: str = "gpt-4o-mini"
 
     # RabbitMQ
