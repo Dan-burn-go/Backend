@@ -33,7 +33,7 @@
 | **Congestion Analysis Service** | 8082 | 혼잡도 수집·저장·제공 | Redis (캐싱) + MySQL (이력) |
 | **Map Service** | 8083 | 장소 탐색·추천 | MySQL (Spatial Index) |
 | **Mobility Service** | 8084 | 교통 경로 추천 | 없음 (외부 API만 사용) |
-| **AI Analysis Service** | 8085 | AI 혼잡 원인 분석 | RabbitMQ 수신 → 외부 AI API → Redis + MySQL 저장 |
+| **AI Analysis Service** | 8085 | AI 혼잡 원인 분석 | RabbitMQ 수신 → 외부 AI API → RabbitMQ 역방향 발행 (저장은 Congestion Service 위임) |
 | **service-common** | - | 공유 라이브러리 | - |
 
 ### 2.2 서비스 간 통신 흐름
@@ -42,8 +42,9 @@
 [데이터 수집]
 서울시 공공 API → Congestion Service → Redis 캐싱 + MySQL 이력
 
-[서비스 간 비동기 통신 — 유일한 서비스 간 통신]
-Congestion Service → (BUSY 상승 엣지 감지) → RabbitMQ → AI Service → Redis + MySQL (리포트)
+[서비스 간 비동기 통신 — 양방향 EDA]
+Congestion Service → (BUSY 상승 엣지 감지) → RabbitMQ → AI Service (분석만 수행)
+AI Service → (분석 결과) → RabbitMQ → Congestion Service → Redis 캐싱 + MySQL 저장
 
 [독립 서비스 — 다른 서비스 호출 없음]
 Map Service      → MySQL Spatial 후보 추출 → 외부 길찾기 API → 소요시간 순 정렬
@@ -142,19 +143,20 @@ Congestion
 
 **기술 스택:** Python 3.12, FastAPI, aio-pika(RabbitMQ), redis
 
-**인프라:** RabbitMQ에서 분석 요청 수신, 결과를 Redis + MySQL에 저장
+**인프라:** RabbitMQ에서 분석 요청 수신, 결과를 RabbitMQ 역방향 발행 (저장 책임 없음)
 
 **EDA 설계:**
 
 - **Exchange:** `congestion.events` (topic)
-- **Routing Key:** `congestion.busy` → Queue: `ai.congestion.analysis`
-- **배치 처리:** Consumer에서 10초 윈도우로 메시지를 모아 외부 AI API 1회 호출 (JSON 배열). 토큰 절약 + rate limit 회피
+- **수신:** Routing Key `congestion.busy` → Queue: `ai.congestion.analysis`
+- **발행:** Routing Key `ai.report` → Queue: `congestion.ai.report` (Congestion Service가 수신하여 DB 저장)
+- **배치 처리:** Consumer에서 2초 윈도우로 메시지를 모아 외부 AI API 1회 호출 (JSON 배열). 토큰 절약 + rate limit 회피
 - **실패 처리:** 1~2회 재시도 (토큰 미소비 실패만), DLQ 없음
 
-**리포트 저장:**
+**리포트 저장 (Congestion Service 담당):**
 
-- Redis: `ai-report:{areaCode}` (TTL 4시간)
-- MySQL: 비동기 Write-Through (원인ID, 혼잡도ID(FK), 분석 메시지)
+- Redis: `ai-report:{areaCode}` (TTL 4시간) — Congestion Service가 이벤트 수신 시 캐싱
+- MySQL: Congestion Service가 RabbitMQ 이벤트를 수신하여 `ai_report` 테이블에 저장 (데이터 소유권 일원화)
 - 조회: `GET /api/congestion/{areaCode}/ai-report` (Congestion Service에서 제공)
 
 **AI 프롬프트 컨텍스트:** areaCode(→ 장소명 매핑), congestionLevel, populationTime(→ 시간대·요일 추출)
@@ -252,7 +254,7 @@ Volume: mysql-data
 
 | 우선순위 | 기능 | 유저스토리 | 수용 조건 | SP | 상태 |
 | --- | --- | --- | --- | --- | --- |
-| Must Have | **AI 혼잡 원인 분석** | AI 혼잡 원인 분석 | 1. BUSY 상승 전이 시 RabbitMQ 이벤트 발행 → 외부 AI API로 자연어 원인 문장 생성. 2. 배치 처리(10초 윈도우)로 토큰 절약. 3. Redis(TTL 4시간) + MySQL 저장. | 상 | Backlog |
+| Must Have | **AI 혼잡 원인 분석** | AI 혼잡 원인 분석 | 1. BUSY 상승 전이 시 RabbitMQ 이벤트 발행 → 외부 AI API로 자연어 원인 문장 생성. 2. 배치 처리(2초 윈도우)로 토큰 절약. 3. RabbitMQ 역방향 발행으로 Congestion Service에 저장 위임 (Redis + MySQL). | 상 | Backlog |
 | Could Have | **AI Function Calling 확장** | AI Function Calling | 1. 축제/행사 API, 기상청 API를 AI가 능동적으로 호출하여 근거 있는 원인 분석을 제공한다. | 중 | Backlog |
 
 ### 6.5 크로스 서비스
@@ -275,7 +277,7 @@ Volume: mysql-data
 ### Phase 2 — Must Have 기능 구현
 
 - **RabbitMQ 연동**: BUSY 상승 엣지 감지 시 AI 분석 요청 발행 (Congestion → RabbitMQ → AI)
-- **AI 혼잡 원인 분석**: 외부 AI API 연동, 배치 처리(10초 윈도우), Redis + MySQL 저장 (AI Service)
+- **AI 혼잡 원인 분석**: 외부 AI API 연동, 배치 처리(2초 윈도우), RabbitMQ 역방향 이벤트로 Congestion Service에 저장 위임 (AI Service)
 - **AI 리포트 조회 API**: Redis → MySQL 폴백(6시간 이내) (Congestion Service)
 - **대체지 추천**: MySQL Spatial 후보 추출 → 외부 길찾기 API 소요시간 순 (Map Service)
 - **버스 노선 기반 경로 추천**: 외부 버스 API + 소요시간 순 정렬 (Mobility Service)

@@ -16,13 +16,6 @@ class Settings(BaseSettings):
     batch_window_seconds: float = 2.0
     batch_max_size: int = 10
 
-    # Redis
-    redis_url: str  # redis://:{password}@{host}:{port}/{db}
-    redis_report_ttl_hours: int = 4
-
-    # MySQL
-    mysql_url: str  # mysql+aiomysql://{user}:{pass}@{host}:{port}/{db}
-
     model_config = {"env_prefix": "", "env_file": ".env"}
 
 

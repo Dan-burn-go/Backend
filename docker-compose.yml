@@ -160,18 +160,12 @@ services:
       - "8085:8085"
     environment:
       - RABBITMQ_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/
-      - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379/0
-      - MYSQL_URL=mysql+aiomysql://${CONGESTION_DB_USERNAME:-root}:${CONGESTION_DB_PASSWORD:-root}@mysql:3306/danburn_congestion
       - AI_PROVIDER=${AI_PROVIDER:-openai}
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.cerebras.ai/v1}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_MODEL=${OPENAI_MODEL:-qwen-3-235b-a22b-instruct-2507}
     depends_on:
       rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      mysql:
         condition: service_healthy
     networks:
       - backend-net
