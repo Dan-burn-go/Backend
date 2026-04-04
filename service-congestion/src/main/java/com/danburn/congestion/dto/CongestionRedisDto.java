@@ -6,6 +6,7 @@ import java.util.List;
  * Redis에 저장되는 혼잡도 데이터 DTO
  */
 public record CongestionRedisDto(
+        String areaName,
         String areaCode,
         String congestionLevel,
         String congestionMessage,

@@ -49,6 +49,7 @@ public class CongestionScheduler {
                             : Collections.emptyList();
 
                     CongestionRedisDto dto = new CongestionRedisDto(
+                            apiResponse.areaName(),
                             apiResponse.areaCode(),
                             apiResponse.congestionLevel(),
                             apiResponse.congestionMessage(),
@@ -86,6 +87,7 @@ public class CongestionScheduler {
             try {
                 CongestionRedisDto dto = dtoMap.get(areaCode);
                 eventPublisher.publishBusyEvent(new CongestionBusyEvent(
+                        dto.areaName(),
                         dto.areaCode(),
                         dto.congestionLevel(),
                         dto.maxPeopleCount(),

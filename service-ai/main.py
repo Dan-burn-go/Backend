@@ -69,3 +69,16 @@ async def test_publish(area_code: str = "POI001", congestion_level: str = "붐�
         )
         await channel.default_exchange.publish(message, routing_key=settings.rabbitmq_queue)
     return {"status": "published", "area_code": area_code, "congestion_level": congestion_level}
+
+
+@app.post("/test/analyze")
+async def test_analyze():
+    """Cerebras API 직접 호출 테스트. 더미 이벤트 2건으로 분석 결과를 반환한다."""
+    from app.models.schemas import CongestionEvent
+
+    dummy_events = [
+        CongestionEvent(area_name="강남역", area_code="POI001", congestion_level="BUSY", max_people_count=50000, population_time="2026-04-04T14:30:00"),
+        CongestionEvent(area_name="홍대입구역", area_code="POI002", congestion_level="BUSY", max_people_count=32000, population_time="2026-04-04T14:30:00"),
+    ]
+    results = await analyzer.analyze(dummy_events)
+    return {"results": [r.model_dump() for r in results]}

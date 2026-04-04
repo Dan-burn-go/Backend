@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 
 import httpx
 
@@ -11,9 +12,10 @@ logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = (
     "당신은 서울시 실시간 혼잡도 데이터를 분석하는 전문가입니다. "
-    "각 지역의 혼잡 원인을 간결하게 분석하세요. "
+    "각 지역의 혼잡 원인을 지역 특성(상권, 교통, 관광지 등)과 "
+    "시간대 맥락(출근길, 점심시간, 퇴근길, 저녁 약속, 심야 등)을 고려하여 간결하게 분석하세요. "
     '응답은 반드시 {"results": [...]} 형태의 JSON 객체로, '
-    "각 항목에 area_code와 analysis_message 필드를 포함하세요."
+    "각 항목에 area_code, area_name, analysis_message 필드를 포함하세요."
 )
 
 
@@ -47,7 +49,11 @@ class OpenAIAnalyzer(AIAnalyzer):
 
         try:
             content = response.json()["choices"][0]["message"]["content"]
-            parsed = json.loads(content)
+            # 마크다운 코드블록 제거 방어
+            match = re.search(r'```(?:json)?\s*(.*?)```', content, re.DOTALL)
+            if match:
+                content = match.group(1)
+            parsed = json.loads(content.strip())
         except (KeyError, IndexError, json.JSONDecodeError) as e:
             logger.error("[OpenAI] 응답 파싱 실패 - %s", e)
             raise
@@ -66,6 +72,7 @@ class OpenAIAnalyzer(AIAnalyzer):
                 continue
             results.append(
                 AnalysisResult(
+                    area_name=event.area_name,
                     area_code=area_code,
                     congestion_level=event.congestion_level,
                     analysis_message=analysis_message,
