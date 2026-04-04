@@ -43,7 +43,7 @@
   - 혼잡도가 **BUSY로 상승 전이**될 때만 이벤트 발행 (상승 엣지 감지)
   - `congestion.events` Topic Exchange → `congestion.busy` Routing Key
   - AI Service에서 **10초 배치 윈도우**로 메시지를 모아 Cerebras Cloud API 1회 호출 (토큰 절약)
-  - 분석 리포트를 Redis(TTL 4시간) + MySQL에 저장, Congestion Service API로 조회
+  - 분석 결과를 RabbitMQ 역방향 이벤트로 발행, Congestion Service가 Redis 캐싱 + MySQL 저장 일원화
 
   ### 3. 대체지 추천 (Map Service)
   - MySQL `ST_Distance_Sphere`로 반경 2km 이내 유사 카테고리 후보 추출
@@ -62,7 +62,7 @@
 
   ### 시간/크기 이중 윈도우 배치 처리 및 재시도 전략
   - **문제**: 퇴근 시간대 등 다수 장소가 동시 BUSY 전이 시, 건별 AI API 호출로 rate limit 초과 및 비용 폭증
-  - **해결**: `BatchProcessor`에서 2초 타이머 윈도우 또는 10건 도달 시 flush하여 1회 배치 호출. 실패 시 최대 2회 재시도 후 폐기. 결과를 Redis(TTL 4h) + MySQL에 Write-Through 저장
+  - **해결**: `BatchProcessor`에서 2초 타이머 윈도우 또는 10건 도달 시 flush하여 1회 배치 호출. 실패 시 최대 2회 재시도 후 폐기. 결과를 RabbitMQ 역방향 이벤트로 발행하여 Congestion Service에 저장 위임
   - **윈도우 시간 근거**: 2초는 사용자 체감 지연(리포트 생성 대기)과 API 효율(배치 효과) 사이의 타협점
   - **결과**: AI API 호출 최대 90% 절감, 재시도 + 폐기 전략으로 메시지 큐 적체 방지
 
@@ -75,6 +75,11 @@
   - **문제**: BUSY 상태가 30분 유지되면 5분 주기 수집 6회 동안 매번 AI 분석 이벤트가 중복 발행, 불필요한 API 비용 발생
   - **해결**: `CongestionStateTracker`에서 이전 상태를 Redis `multiGet` 벌크 조회(1회), Redis 미스 시 DB `IN` 쿼리 벌크 폴백(1회). 이전 ≠ BUSY → 현재 = BUSY (상승 엣지)일 때만 발행
   - **결과**: 중복 AI 분석 이벤트 제거, 122개 장소의 상태 판정을 N+1 없이 최대 2회 쿼리로 처리
+
+  ### At-Least-Once + 멱등성 기반 Exactly-Once 정합성 구현
+  - **문제**: 컨슈머 장애 시 메시지 재전송에 의한 중복 유입으로 **통계 데이터가 오염될 가능성 확인**
+  - **해결**: At-Least-Once 전송 보장과 UNIQUE 제약 조건(areaCode + populationTime) 기반의 멱등성 확보로 **사실상의 Exactly-Once 정합성 구현**
+  - **결과**: 장애 상황에서도 데이터 무결성을 유지하고, 중복 호출 방지를 통해 **AI API 토큰 비용 최적화**
 
   ### Circuit Breaker 기반 장애 전파 차단 및 캐시 폴백 (도입 예정)
   - **문제**: 서울시 공공 API 타임아웃 또는 AI API rate limit 초과 시, 연속 실패가 서비스 전체 응답 지연으로 전파
