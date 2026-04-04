@@ -59,7 +59,6 @@
   - **문제**: 혼잡도 수집(Java) 후 AI 분석(Python)을 동기 호출하면 AI API 응답 지연이 수집 사이클을 블로킹하고, AI 서비스 장애 시 Congestion 서비스까지 연쇄 장애
   - **해결**: RabbitMQ TopicExchange(`congestion.events`)로 발행-구독 분리. `CongestionEventPublisher`가 BUSY 이벤트를 발행하고, Python Consumer가 aio-pika로 소비. `Jackson2JsonMessageConverter`로 Java↔Python 간 직렬화 통일
   - **결과**: 데이터 수집과 AI 분석의 완전한 비동기 분리, AI 서비스 장애 시에도 혼잡도 수집·서빙 무중단 보장
-  - **확장 방향**: TopicExchange 라우팅 키 기반으로 Publisher 코드 수정 없이 새로운 Consumer 추가 가능 하게 확장 예정
 
   ### 시간/크기 이중 윈도우 배치 처리 및 재시도 전략
   - **문제**: 퇴근 시간대 등 다수 장소가 동시 BUSY 전이 시, 건별 AI API 호출로 rate limit 초과 및 비용 폭증
