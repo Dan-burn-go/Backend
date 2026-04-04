@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -35,9 +36,13 @@ public class AiReportEventConsumer {
                 .populationTime(event.populationTime())
                 .build();
 
-        aiReportRepository.save(aiReport);
-        cacheToRedis(event);
-        log.info("[AiReportConsumer] AI 분석 결과 저장 완료 - areaCode={}", event.areaCode());
+        try {
+            aiReportRepository.save(aiReport);
+            cacheToRedis(event);
+            log.info("[AiReportConsumer] AI 분석 결과 저장 완료 - areaCode={}", event.areaCode());
+        } catch (DataIntegrityViolationException e) {
+            log.warn("[AiReportConsumer] 중복 메시지 무시 - areaCode={}, populationTime={}", event.areaCode(), event.populationTime());
+        }
     }
 
     private void cacheToRedis(AiReportEvent event) {
