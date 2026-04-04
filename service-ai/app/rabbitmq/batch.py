@@ -4,8 +4,7 @@ import logging
 from app.ai.interface import AIAnalyzer
 from app.config import settings
 from app.models.schemas import CongestionEvent
-from app.store.mysql_store import MySQLStore
-from app.store.redis_store import RedisStore
+from app.rabbitmq.publisher import RabbitMQPublisher
 
 logger = logging.getLogger(__name__)
 
@@ -18,12 +17,10 @@ class BatchProcessor:
     def __init__(
         self,
         analyzer: AIAnalyzer,
-        redis_store: RedisStore,
-        mysql_store: MySQLStore,
+        publisher: RabbitMQPublisher,
     ) -> None:
         self._analyzer = analyzer
-        self._redis_store = redis_store
-        self._mysql_store = mysql_store
+        self._publisher = publisher
         self._buffer: list[CongestionEvent] = []
         self._retry_count: int = 0
         self._lock = asyncio.Lock()
@@ -88,11 +85,7 @@ class BatchProcessor:
                 self._retry_count = 0
             return
         try:
-            await self._redis_store.save_all(results)
+            await self._publisher.publish_all(results)
         except Exception as e:
-            logger.error("[BatchProcessor] Redis 저장 실패 - %s", e)
-        try:
-            await self._mysql_store.save_all(results)
-        except Exception as e:
-            logger.error("[BatchProcessor] MySQL 저장 실패 - %s", e)
+            logger.error("[BatchProcessor] RabbitMQ 발행 실패 - %s", e)
         logger.info("[BatchProcessor] 배치 처리 완료 - %d건", len(results))
