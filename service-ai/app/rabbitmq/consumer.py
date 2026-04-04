@@ -59,6 +59,7 @@ class RabbitMQConsumer:
         try:
             body = json.loads(message.body.decode())
             event = CongestionEvent(
+                area_name=body["areaName"],
                 area_code=body["areaCode"],
                 congestion_level=body["congestionLevel"],
                 max_people_count=body["maxPeopleCount"],

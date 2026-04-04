@@ -47,7 +47,7 @@ class CongestionServiceTest {
 
     private CongestionRedisDto createRedisDto(String areaCode, String level) {
         return new CongestionRedisDto(
-                areaCode, level, "테스트 메시지",
+                "테스트장소", areaCode, level, "테스트 메시지",
                 10000, 12000, "2026-04-01 14:00",
                 List.of(new CongestionRedisDto.ForecastDto(
                         "2026-04-01 15:00", "보통", 8000, 10000
@@ -180,7 +180,7 @@ class CongestionServiceTest {
         @DisplayName("populationTime이 null이어도 저장 성공")
         void saveAllWithNullPopulationTime() {
             CongestionRedisDto dto = new CongestionRedisDto(
-                    "POI001", "여유", "메시지", 1000, 2000, null, Collections.emptyList()
+                    "테스트장소", "POI001", "여유", "메시지", 1000, 2000, null, Collections.emptyList()
             );
 
             congestionService.saveAllToDb(List.of(dto));

@@ -20,6 +20,9 @@ public class AiReport extends BaseEntity {
     @Column(name = "ai_report_id")
     private Long id;
 
+    @Column(name = "area_name", nullable = false, length = 100)
+    private String areaName;
+
     @Column(name = "area_code", nullable = false, length = 50)
     private String areaCode;
 
@@ -33,7 +36,8 @@ public class AiReport extends BaseEntity {
     private String populationTime;
 
     @Builder
-    private AiReport(String areaCode, String congestionLevel, String analysisMessage, String populationTime) {
+    private AiReport(String areaName, String areaCode, String congestionLevel, String analysisMessage, String populationTime) {
+        this.areaName = areaName;
         this.areaCode = areaCode;
         this.congestionLevel = congestionLevel;
         this.analysisMessage = analysisMessage;
