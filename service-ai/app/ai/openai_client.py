@@ -54,6 +54,10 @@ class OpenAIAnalyzer(AIAnalyzer):
             if match:
                 content = match.group(1)
             parsed = json.loads(content.strip())
+            if isinstance(parsed, list):
+                parsed = {"results": parsed}
+            elif not isinstance(parsed, dict):
+                parsed = {"results": []}
         except (KeyError, IndexError, json.JSONDecodeError) as e:
             logger.error("[OpenAI] 응답 파싱 실패 - %s", e)
             raise
