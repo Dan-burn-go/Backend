@@ -4,8 +4,9 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # AI API
     ai_provider: str = "stub"  # "stub" | "openai"
+    openai_base_url: str = "https://api.cerebras.ai/v1"
     openai_api_key: str = ""
-    openai_model: str = "gpt-4o-mini"
+    openai_model: str = "qwen-3-235b-a22b-instruct-2507"
 
     # RabbitMQ
     rabbitmq_url: str  # amqp://{user}:{pass}@{host}:{port}/

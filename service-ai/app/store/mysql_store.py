@@ -19,6 +19,7 @@ class AiReport(Base):
     __tablename__ = "ai_report"
 
     id = Column("ai_report_id", Integer, primary_key=True, autoincrement=True)
+    area_name = Column(String(100), nullable=False)
     area_code = Column(String(50), nullable=False, index=True)
     congestion_level = Column(String(20), nullable=False)
     analysis_message = Column(Text, nullable=False)
@@ -46,6 +47,7 @@ class MySQLStore:
                 for r in results:
                     session.add(
                         AiReport(
+                            area_name=r.area_name,
                             area_code=r.area_code,
                             congestion_level=r.congestion_level,
                             analysis_message=r.analysis_message,
