@@ -99,19 +99,17 @@ public class RealSeoulApiClient implements SeoulApiClient {
         try {
             JsonNode root = objectMapper.readTree(json);
 
-            String resultCode = root.path("RESULT.CODE").asText();
-            if (!"INFO-000".equals(resultCode)) {
+            JsonNode dataArray = root.path("SeoulRtd.citydata_ppltn");
+            if (dataArray.isMissingNode() || !dataArray.isArray() || dataArray.isEmpty()) {
+                String resultCode = root.path("RESULT").path("CODE").asText();
+                String resultMessage = root.path("RESULT").path("MESSAGE").asText();
                 log.warn("[SeoulApiClient] API 오류 응답 - area={}({}), code={}, message={}, raw={}",
-                        area.getName(), area.getCode(), resultCode, root.path("RESULT.MESSAGE").asText(),
+                        area.getName(), area.getCode(), resultCode, resultMessage,
                         json.length() > 200 ? json.substring(0, 200) + "..." : json);
                 return null;
             }
 
-            JsonNode data = root.path("SeoulRtd.citydata_ppltn").get(0);
-            if (data == null) {
-                log.warn("[SeoulApiClient] 응답 데이터 없음 - area={}({})", area.getName(), area.getCode());
-                return null;
-            }
+            JsonNode data = dataArray.get(0);
 
             List<CongestionApiResponse.ForecastResponse> forecasts = new ArrayList<>();
             JsonNode fcstNode = data.path("FCST_PPLTN");
