@@ -61,6 +61,8 @@ jobs:
       - name: Pull latest code
         run: |
           cd ~/Backend
+          git checkout -- .
+          git clean -fd
           success=false
           for i in 1 2 3; do
             git pull origin main && success=true && break
