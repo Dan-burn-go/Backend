@@ -89,8 +89,8 @@ public class RealSeoulApiClient implements SeoulApiClient {
             String response = restTemplate.getForObject(URI.create(url), String.class);
             return parseResponse(response, area);
         } catch (Exception e) {
-            log.warn("[SeoulApiClient] API 호출 실패 - area={}, error={}, message={}",
-                    area.getName(), e.getClass().getSimpleName(), e.getMessage());
+            log.warn("[SeoulApiClient] API 호출 실패 - area={}({}), error={}, message={}",
+                    area.getName(), area.getCode(), e.getClass().getSimpleName(), e.getMessage());
             return null;
         }
     }
@@ -99,18 +99,17 @@ public class RealSeoulApiClient implements SeoulApiClient {
         try {
             JsonNode root = objectMapper.readTree(json);
 
-            JsonNode resultNode = root.path("RESULT");
-            String resultCode = resultNode.path("RESULT.CODE").asText();
+            String resultCode = root.path("RESULT.CODE").asText();
             if (!"INFO-000".equals(resultCode)) {
-                log.warn("[SeoulApiClient] API 오류 응답 - area={}, code={}, message={}, raw={}",
-                        area.getName(), resultCode, resultNode.path("RESULT.MESSAGE").asText(),
+                log.warn("[SeoulApiClient] API 오류 응답 - area={}({}), code={}, message={}, raw={}",
+                        area.getName(), area.getCode(), resultCode, root.path("RESULT.MESSAGE").asText(),
                         json.length() > 200 ? json.substring(0, 200) + "..." : json);
                 return null;
             }
 
             JsonNode data = root.path("SeoulRtd.citydata_ppltn").get(0);
             if (data == null) {
-                log.warn("[SeoulApiClient] 응답 데이터 없음 - area={}", area.getName());
+                log.warn("[SeoulApiClient] 응답 데이터 없음 - area={}({})", area.getName(), area.getCode());
                 return null;
             }
 
@@ -138,8 +137,8 @@ public class RealSeoulApiClient implements SeoulApiClient {
                     forecasts
             );
         } catch (Exception e) {
-            log.warn("[SeoulApiClient] 응답 파싱 실패 - area={}, error={}",
-                    area.getName(), e.getClass().getSimpleName());
+            log.warn("[SeoulApiClient] 응답 파싱 실패 - area={}({}), error={}",
+                    area.getName(), area.getCode(), e.getClass().getSimpleName());
             return null;
         }
     }
