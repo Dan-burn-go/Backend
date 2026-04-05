@@ -58,11 +58,8 @@ def setup_observability(app) -> None:
     class _LevelLokiHandler(logging_loki.LokiHandler):
         """로그 레벨을 Loki label에 포함시키는 핸들러."""
         def emit(self, record):
-            try:
-                tags = {**self.tags, "level": record.levelname}
-                self.emitter(record, self.format(record), tags=tags)
-            except Exception:
-                self.handleError(record)
+            self.emitter.tags["level"] = record.levelname
+            super().emit(record)
 
     loki_handler = _LevelLokiHandler(
         url=settings.loki_url,
