@@ -99,11 +99,10 @@ public class RealSeoulApiClient implements SeoulApiClient {
         try {
             JsonNode root = objectMapper.readTree(json);
 
-            JsonNode resultNode = root.path("RESULT");
-            String resultCode = resultNode.path("RESULT.CODE").asText();
+            String resultCode = root.path("RESULT.CODE").asText();
             if (!"INFO-000".equals(resultCode)) {
                 log.warn("[SeoulApiClient] API 오류 응답 - area={}({}), code={}, message={}, raw={}",
-                        area.getName(), area.getCode(), resultCode, resultNode.path("RESULT.MESSAGE").asText(),
+                        area.getName(), area.getCode(), resultCode, root.path("RESULT.MESSAGE").asText(),
                         json.length() > 200 ? json.substring(0, 200) + "..." : json);
                 return null;
             }
