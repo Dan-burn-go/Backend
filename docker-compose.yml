@@ -168,6 +168,8 @@ services:
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.cerebras.ai/v1}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_MODEL=${OPENAI_MODEL:-qwen-3-235b-a22b-instruct-2507}
+      - OTLP_TRACES_URL=http://observability:4318/v1/traces
+      - LOKI_URL=http://observability:3100/loki/api/v1/push
     depends_on:
       rabbitmq:
         condition: service_healthy
