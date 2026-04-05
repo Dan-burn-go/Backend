@@ -31,4 +31,5 @@
     </root>
 
     <logger name="com.danburn" level="DEBUG"/>
+    <logger name="io.micrometer.core.instrument.push.PushMeterRegistry" level="ERROR"/>
 </included>
