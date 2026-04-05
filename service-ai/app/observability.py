@@ -1,4 +1,7 @@
+import atexit
 import logging
+import logging.handlers
+import queue
 
 import logging_loki
 from opentelemetry import trace
@@ -28,11 +31,12 @@ class _TraceLogFormatter(logging.Formatter):
 
 
 _tracer_provider: TracerProvider | None = None
+_queue_listener: logging.handlers.QueueListener | None = None
 
 
 def setup_observability(app) -> None:
     """OpenTelemetry tracing + Loki logging 초기화. lifespan startup에서 호출."""
-    global _tracer_provider
+    global _tracer_provider, _queue_listener
 
     # ── Tracing ──────────────────────────────────────────────
     resource = Resource.create({"service.name": "service-ai"})
@@ -46,15 +50,22 @@ def setup_observability(app) -> None:
     AioPikaInstrumentor().instrument()
 
     # ── Logging ───────────────────────────────────────────────
-    fmt = "%(asctime)s %(levelname)s %(name)s [trace=%(traceId)s span=%(spanId)s] - %(message)s"
+    # 포맷: [traceId spanId] — Grafana derivedFields regex와 일치
+    fmt = "%(asctime)s %(levelname)s %(name)s [%(traceId)s %(spanId)s] - %(message)s"
     formatter = _TraceLogFormatter(fmt)
 
+    # Loki 핸들러를 QueueHandler로 감싸서 이벤트 루프 차단 방지
     loki_handler = logging_loki.LokiHandler(
         url=settings.loki_url,
         tags={"app": "service-ai"},
         version="1",
     )
     loki_handler.setFormatter(formatter)
+
+    log_queue: queue.Queue = queue.Queue(-1)
+    queue_handler = logging.handlers.QueueHandler(log_queue)
+    _queue_listener = logging.handlers.QueueListener(log_queue, loki_handler, respect_handler_level=True)
+    _queue_listener.start()
 
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
@@ -63,11 +74,19 @@ def setup_observability(app) -> None:
     root_logger.setLevel(logging.INFO)
     root_logger.handlers.clear()
     root_logger.addHandler(console_handler)
-    root_logger.addHandler(loki_handler)
+    root_logger.addHandler(queue_handler)
+
+    # uvicorn 로거가 root로 전파되도록 설정
+    for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+        uv_logger = logging.getLogger(name)
+        uv_logger.handlers.clear()
+        uv_logger.propagate = True
 
 
 def shutdown_observability() -> None:
     """TracerProvider를 flush하고 종료. lifespan shutdown에서 호출."""
+    if _queue_listener is not None:
+        _queue_listener.stop()
     if _tracer_provider is not None:
         _tracer_provider.force_flush()
         _tracer_provider.shutdown()
