@@ -158,7 +158,7 @@
         "regex": "",
         "multi": true,
         "includeAll": true,
-        "allValue": ".*",
+        "allValue": ".+",
         "current": { "selected": true, "text": "All", "value": "$__all" },
         "refresh": 2,
         "sort": 1
@@ -172,7 +172,7 @@
         "regex": "",
         "multi": true,
         "includeAll": true,
-        "allValue": ".*",
+        "allValue": ".+",
         "current": { "selected": true, "text": "All", "value": "$__all" },
         "refresh": 2,
         "sort": 0
