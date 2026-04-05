@@ -38,7 +38,8 @@
         {
           "expr": "sum(count_over_time({app=~\"$service\", level=\"ERROR\"} |~ \"$search\" [$__range]))",
           "legendFormat": "ERROR count",
-          "refId": "A"
+          "refId": "A",
+          "instant": true
         }
       ]
     },
@@ -75,7 +76,8 @@
         {
           "expr": "sum(count_over_time({app=~\"$service\", level=\"WARN\"} |~ \"$search\" [$__range]))",
           "legendFormat": "WARN count",
-          "refId": "A"
+          "refId": "A",
+          "instant": true
         }
       ]
     },
