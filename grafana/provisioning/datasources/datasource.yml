@@ -8,6 +8,13 @@ datasources:
     url: http://localhost:3100
     isDefault: false
     editable: true
+    jsonData:
+      derivedFields:
+        - name: TraceID
+          datasourceUid: tempo
+          matcherRegex: "\[([a-f0-9]{32}) [a-f0-9]{16}\]"
+          url: "$${__value.raw}"
+          matcherType: regex
 
   - name: Tempo
     type: tempo
