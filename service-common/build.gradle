@@ -7,4 +7,8 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
 
     api 'com.github.loki4j:loki-logback-appender:1.5.2'
+
+    // Distributed Tracing (Micrometer → OpenTelemetry → OTLP)
+    api 'io.micrometer:micrometer-tracing-bridge-otel'
+    api 'io.opentelemetry:opentelemetry-exporter-otlp'
 }
