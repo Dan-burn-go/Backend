@@ -12,7 +12,7 @@ datasources:
       derivedFields:
         - name: TraceID
           datasourceUid: tempo
-          matcherRegex: "\[([a-f0-9]{32}) [a-f0-9]{16}\]"
+          matcherRegex: "\\[(?:[^,\\]]+,)?([a-f0-9]{32})[ ,][a-f0-9]{16}\\]"
           url: "$${__value.raw}"
           matcherType: regex
 

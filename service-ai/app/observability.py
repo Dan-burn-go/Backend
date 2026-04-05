@@ -62,7 +62,7 @@ def setup_observability(app) -> None:
     )
     loki_handler.setFormatter(formatter)
 
-    log_queue: queue.Queue = queue.Queue(-1)
+    log_queue: queue.Queue = queue.Queue(1000)
     queue_handler = logging.handlers.QueueHandler(log_queue)
     _queue_listener = logging.handlers.QueueListener(log_queue, loki_handler, respect_handler_level=True)
     _queue_listener.start()
