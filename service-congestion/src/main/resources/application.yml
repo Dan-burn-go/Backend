@@ -1,6 +1,8 @@
 spring:
   application:
     name: service-congestion
+  jpa:
+    open-in-view: false
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/danburn_congestion?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
     username: ${SPRING_DATASOURCE_USERNAME:root}

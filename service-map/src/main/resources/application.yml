@@ -1,6 +1,8 @@
 spring:
   application:
     name: service-map
+  jpa:
+    open-in-view: false
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/danburn_map?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
     username: ${SPRING_DATASOURCE_USERNAME:root}
