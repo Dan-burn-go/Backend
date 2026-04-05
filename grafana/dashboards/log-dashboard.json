@@ -6,7 +6,7 @@
   "links": [],
   "panels": [
     {
-      "title": "ERROR Log Count (Last 1h)",
+      "title": "ERROR Log Count",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
       "datasource": { "type": "loki", "uid": "loki" },
@@ -36,14 +36,14 @@
       },
       "targets": [
         {
-          "expr": "sum(count_over_time({app=~\"$service\", level=\"ERROR\"} |~ \"$search\" [1h]))",
+          "expr": "sum(count_over_time({app=~\"$service\", level=\"ERROR\"} |~ \"$search\" [$__range]))",
           "legendFormat": "ERROR count",
           "refId": "A"
         }
       ]
     },
     {
-      "title": "WARN Log Count (Last 1h)",
+      "title": "WARN Log Count",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
       "datasource": { "type": "loki", "uid": "loki" },
@@ -73,7 +73,7 @@
       },
       "targets": [
         {
-          "expr": "sum(count_over_time({app=~\"$service\", level=\"WARN\"} |~ \"$search\" [1h]))",
+          "expr": "sum(count_over_time({app=~\"$service\", level=\"WARN\"} |~ \"$search\" [$__range]))",
           "legendFormat": "WARN count",
           "refId": "A"
         }
@@ -154,7 +154,8 @@
         "label": "Service",
         "type": "query",
         "datasource": { "type": "loki", "uid": "loki" },
-        "definition": "label_values(app)",
+        "definition": "label_values({app=~\".+\"}, app)",
+        "query": "label_values({app=~\".+\"}, app)",
         "regex": "",
         "multi": true,
         "includeAll": true,
@@ -168,7 +169,8 @@
         "label": "Log Level",
         "type": "query",
         "datasource": { "type": "loki", "uid": "loki" },
-        "definition": "label_values(level)",
+        "definition": "label_values({app=~\".+\"}, level)",
+        "query": "label_values({app=~\".+\"}, level)",
         "regex": "",
         "multi": true,
         "includeAll": true,
