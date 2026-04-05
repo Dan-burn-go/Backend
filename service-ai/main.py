@@ -8,11 +8,11 @@ from fastapi import FastAPI
 
 from app.ai.factory import create_analyzer
 from app.config import settings
+from app.observability import setup_observability, shutdown_observability
 from app.rabbitmq.batch import BatchProcessor
 from app.rabbitmq.consumer import RabbitMQConsumer
 from app.rabbitmq.publisher import RabbitMQPublisher
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 analyzer = create_analyzer()
@@ -24,6 +24,7 @@ consumer = RabbitMQConsumer(batch_processor)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # startup
+    setup_observability(app)
     await publisher.connect()
     await batch_processor.start()
     await consumer.start()
@@ -37,6 +38,7 @@ async def lifespan(app: FastAPI):
     await analyzer.close()
     await publisher.close()
     logger.info("[AI Service] 종료 완료")
+    shutdown_observability()
 
 
 app = FastAPI(title="Dan-burn-go AI Service", lifespan=lifespan)

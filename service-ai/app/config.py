@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     batch_window_seconds: float = 2.0
     batch_max_size: int = 10
 
+    # Observability
+    otlp_traces_url: str = "http://localhost:4318/v1/traces"
+    loki_url: str = "http://localhost:3100/loki/api/v1/push"
+
     model_config = {"env_prefix": "", "env_file": ".env"}
 
 
