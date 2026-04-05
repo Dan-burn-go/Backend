@@ -16,12 +16,9 @@ class Settings(BaseSettings):
     batch_window_seconds: float = 2.0
     batch_max_size: int = 10
 
-    # Redis
-    redis_url: str  # redis://:{password}@{host}:{port}/{db}
-    redis_report_ttl_hours: int = 4
-
-    # MySQL
-    mysql_url: str  # mysql+aiomysql://{user}:{pass}@{host}:{port}/{db}
+    # Observability
+    otlp_traces_url: str = "http://localhost:4318/v1/traces"
+    loki_url: str = "http://localhost:3100/loki/api/v1/push"
 
     model_config = {"env_prefix": "", "env_file": ".env"}
 
