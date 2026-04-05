@@ -55,7 +55,13 @@ def setup_observability(app) -> None:
     formatter = _TraceLogFormatter(fmt)
 
     # Loki 핸들러를 QueueHandler로 감싸서 이벤트 루프 차단 방지
-    loki_handler = logging_loki.LokiHandler(
+    class _LevelLokiHandler(logging_loki.LokiHandler):
+        """로그 레벨을 Loki label에 포함시키는 핸들러."""
+        def emit(self, record):
+            self.emitter.tags["level"] = record.levelname
+            super().emit(record)
+
+    loki_handler = _LevelLokiHandler(
         url=settings.loki_url,
         tags={"app": "service-ai"},
         version="1",
