@@ -74,6 +74,7 @@ services:
       - GF_SERVER_ROOT_URL=https://grafana.goseoul.today/
     volumes:
       - ./grafana/provisioning/dashboards/dashboard.yml:/otel-lgtm/grafana/conf/provisioning/dashboards/danburn.yaml
+      - ./grafana/provisioning/datasources/datasource.yml:/otel-lgtm/grafana/conf/provisioning/datasources/danburn.yaml
       - ./grafana/dashboards:/otel-lgtm/danburn-dashboards
     networks:
       - backend-net
