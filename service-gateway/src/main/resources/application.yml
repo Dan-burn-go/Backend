@@ -1,8 +1,26 @@
 spring:
   application:
     name: service-gateway
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   cloud:
     gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+            allowedMethods: [GET, POST, PUT, DELETE, OPTIONS]
+            allowedHeaders: [Content-Type, Authorization]
+            allowCredentials: true
+      default-filters:
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter.replenishRate: 10
+            redis-rate-limiter.burstCapacity: 20
+            redis-rate-limiter.requestedTokens: 1
+            key-resolver: "#{@ipKeyResolver}"
       routes:
         # 혼잡도 분석 서비스
         - id: congestion-route
