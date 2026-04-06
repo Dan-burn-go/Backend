@@ -1,5 +1,9 @@
 package com.danburn.gateway;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.Optional;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
@@ -16,7 +20,10 @@ public class GatewayApplication {
     @Bean
     public KeyResolver ipKeyResolver() {
         return exchange -> Mono.just(
-                exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
+                Optional.ofNullable(exchange.getRequest().getRemoteAddress())
+                        .map(InetSocketAddress::getAddress)
+                        .map(InetAddress::getHostAddress)
+                        .orElse("unknown")
         );
     }
 }
