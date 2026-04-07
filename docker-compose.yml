@@ -184,6 +184,7 @@ services:
     ports:
       - "8080:8080"
     environment:
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
       - CONGESTION_SERVICE_URL=http://service-congestion:8082
       - MAP_SERVICE_URL=http://service-map:8083
       - MOBILITY_SERVICE_URL=http://service-mobility:8084
