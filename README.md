@@ -55,11 +55,11 @@
   ---
 
   ## Trouble Shooting
-  ### RabbitMQ 기반 이벤트 드리븐 서비스 간 비동기 통신
-  - **문제**: 혼잡도 수집(Java) 후 AI 분석(Python)을 동기 호출하면 AI API 응답 지연이 수집 사이클을 블로킹하고, AI 서비스 장애 시 Congestion 서비스까지 연쇄 장애
-  - **해결**: RabbitMQ TopicExchange를 활용한 발행-구독 모델 분리 및 Python aio-pika 기반의 비동기 메시지 소비 파이프라인 구축
-  - **결과**: 데이터 수집과 AI 분석의 완전한 비동기 분리, AI 서비스 장애 시에도 혼잡도 수집·서빙 무중단 보장
-
+  ### [RabbitMQ 기반 비동기 EDA 구조를 이용한 AI분석 기능 도입] [🔗Blog](https://velog.io/@kim138762/RabbitMQ-%EA%B8%B0%EB%B0%98-%EB%B9%84%EB%8F%99%EA%B8%B0-EDA-%EA%B5%AC%EC%A1%B0%EB%A5%BC-%EC%9D%B4%EC%9A%A9%ED%95%9C-AI%EB%B6%84%EC%84%9D-%EA%B8%B0%EB%8A%A5-%EB%8F%84%EC%9E%85)
+  - **문제**: AI분석 기능 도입 과정에서 5분 주기 수집의 요청 버스트와 AI API 호출 제한의 충돌.
+  - **해결**: Java와 Python 서비스를 분리하고, RabbitMQ 기반의 비동기 EDA 구조를 도입하여 시스템 간 의존성을 완전히 제거.
+  - **결과**: AI API의 호출 제한 내에서 안정적인 분석 처리가 가능해졌으며, 서비스의 장애가 전파되지 않는 장애격리 달성
+ 
   ### EDA 환경에서의 At-Least-Once + 멱등성 기반 Exactly-Once 정합성 구현
   - **문제**: RabbitMQ의 최소 한 번 전송 정책으로 인해, 컨슈머 장애 시 메시지 재전송에 의한 중복 유입으로 **통계 데이터가 오염될 가능성 확인**
   - **해결**: At-Least-Once 전송 보장과 UNIQUE 제약 조건(areaCode + populationTime) 기반의 멱등성 확보로 **사실상의 Exactly-Once 정합성 구현**
