@@ -81,6 +81,15 @@ public class CongestionRedisRepositoryImpl implements CongestionRedisRepository 
     }
 
     @Override
+    public List<CongestionRedisDto> findAllByAreaCodes(List<String> areaCodes) {
+        List<String> keys = areaCodes.stream()
+                .map(code -> KEY_PREFIX + code)
+                .toList();
+        List<CongestionRedisDto> values = congestionRedisTemplate.opsForValue().multiGet(keys);
+        return values != null ? values : Collections.nCopies(areaCodes.size(), null);
+    }
+
+    @Override
     public void delete(String areaCode) {
         String key = KEY_PREFIX + areaCode;
         congestionRedisTemplate.delete(key);

@@ -46,6 +46,10 @@ build/
 ehthumbs.db
 Thumbs.db
 
+# Python
+__pycache__/
+*.pyc
+
 # Application specific
 .claudignore
 .env
@@ -56,3 +60,5 @@ logs/
 # Claude Code / OMC
 .omc/
 .claude/
+CLAUDE.md
+**/CLAUDE.md

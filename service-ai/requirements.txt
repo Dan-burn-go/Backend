@@ -1,4 +1,11 @@
 fastapi>=0.116.0
 uvicorn==0.34.0
 pydantic==2.10.4
+pydantic-settings==2.7.1
 httpx==0.28.1
+aio-pika==9.5.4
+opentelemetry-sdk>=1.25.0
+opentelemetry-exporter-otlp>=1.25.0
+opentelemetry-instrumentation-fastapi>=0.46b0
+opentelemetry-instrumentation-aio-pika>=0.46b0
+python-logging-loki>=0.3.1

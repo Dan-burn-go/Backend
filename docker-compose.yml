@@ -74,6 +74,7 @@ services:
       - GF_SERVER_ROOT_URL=https://grafana.goseoul.today/
     volumes:
       - ./grafana/provisioning/dashboards/dashboard.yml:/otel-lgtm/grafana/conf/provisioning/dashboards/danburn.yaml
+      - ./grafana/provisioning/datasources/datasource.yml:/otel-lgtm/grafana/conf/provisioning/datasources/danburn.yaml
       - ./grafana/dashboards:/otel-lgtm/danburn-dashboards
     networks:
       - backend-net
@@ -95,6 +96,7 @@ services:
       - SPRING_DATASOURCE_USERNAME=${CONGESTION_DB_USERNAME:-root}
       - SPRING_DATASOURCE_PASSWORD=${CONGESTION_DB_PASSWORD:-root}
       - OTLP_URL=http://observability:4318/v1/metrics
+      - OTLP_TRACES_URL=http://observability:4318/v1/traces
       - LOKI_URL=http://observability:3100/loki/api/v1/push
       - CONGESTION_SCHEDULER_INTERVAL=${CONGESTION_SCHEDULER_INTERVAL:-300000}
       - CONGESTION_CLEANUP_CRON=${CONGESTION_CLEANUP_CRON:-0 0 3 * * *}
@@ -126,6 +128,7 @@ services:
       - SPRING_DATASOURCE_USERNAME=${MAP_DB_USERNAME:-root}
       - SPRING_DATASOURCE_PASSWORD=${MAP_DB_PASSWORD:-root}
       - OTLP_URL=http://observability:4318/v1/metrics
+      - OTLP_TRACES_URL=http://observability:4318/v1/traces
       - LOKI_URL=http://observability:3100/loki/api/v1/push
       - SEOUL_API_KEY=${SEOUL_API_KEY}
     depends_on:
@@ -145,6 +148,7 @@ services:
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - OTLP_URL=http://observability:4318/v1/metrics
+      - OTLP_TRACES_URL=http://observability:4318/v1/traces
       - LOKI_URL=http://observability:3100/loki/api/v1/push
     depends_on:
       redis:
@@ -160,17 +164,15 @@ services:
     ports:
       - "8085:8085"
     environment:
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_PORT=5672
-      - RABBITMQ_USER=${RABBITMQ_USER:-guest}
-      - RABBITMQ_PASS=${RABBITMQ_PASS:-guest}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/
+      - AI_PROVIDER=${AI_PROVIDER:-openai}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.cerebras.ai/v1}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-qwen-3-235b-a22b-instruct-2507}
+      - OTLP_TRACES_URL=http://observability:4318/v1/traces
+      - LOKI_URL=http://observability:3100/loki/api/v1/push
     depends_on:
       rabbitmq:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     networks:
       - backend-net
@@ -183,11 +185,13 @@ services:
     ports:
       - "8080:8080"
     environment:
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
       - CONGESTION_SERVICE_URL=http://service-congestion:8082
       - MAP_SERVICE_URL=http://service-map:8083
       - MOBILITY_SERVICE_URL=http://service-mobility:8084
       - AI_SERVICE_URL=http://service-ai:8085
       - OTLP_URL=http://observability:4318/v1/metrics
+      - OTLP_TRACES_URL=http://observability:4318/v1/traces
       - LOKI_URL=http://observability:3100/loki/api/v1/push
     depends_on:
       - service-congestion
@@ -203,3 +207,5 @@ volumes:
 networks:
   backend-net:
     driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1450

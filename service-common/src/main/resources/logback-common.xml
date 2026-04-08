@@ -19,7 +19,7 @@
                 <pattern>app=${APP_NAME},host=${HOSTNAME},level=%level</pattern>
             </label>
             <message>
-                <pattern>${FILE_LOG_PATTERN}</pattern>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [${APP_NAME},%X{traceId:-},%X{spanId:-}] --- [%15.15t] %-40.40logger{39} : %m%n</pattern>
             </message>
             <sortByTime>true</sortByTime>
         </format>
@@ -31,4 +31,5 @@
     </root>
 
     <logger name="com.danburn" level="DEBUG"/>
+    <logger name="io.micrometer.core.instrument.push.PushMeterRegistry" level="ERROR"/>
 </included>

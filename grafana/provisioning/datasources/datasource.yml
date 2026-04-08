@@ -1,0 +1,34 @@
+apiVersion: 1
+
+datasources:
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://localhost:3100
+    isDefault: false
+    editable: true
+    jsonData:
+      derivedFields:
+        - name: TraceID
+          datasourceUid: tempo
+          matcherRegex: "\\[(?:[^,\\]]+,)?([a-f0-9]{32})[ ,][a-f0-9]{16}\\]"
+          url: "$${__value.raw}"
+          matcherType: regex
+
+  - name: Tempo
+    type: tempo
+    uid: tempo
+    access: proxy
+    url: http://localhost:3200
+    isDefault: false
+    editable: true
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki
+        filterByTraceID: true
+        filterBySpanID: true
+      nodeGraph:
+        enabled: true
+      serviceMap:
+        datasourceUid: prometheus

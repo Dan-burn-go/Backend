@@ -61,23 +61,66 @@ jobs:
       - name: Pull latest code
         run: |
           cd ~/Backend
-          git pull origin main
+          git checkout -- .
+          git clean -fd
+          success=false
+          for i in 1 2 3; do
+            git pull origin main && success=true && break
+            echo "git pull failed (attempt $i/3), retrying in 10s..."
+            sleep 10
+          done
+          if [ "$success" = false ]; then
+            echo "::error::git pull failed after 3 attempts"
+            exit 1
+          fi
 
       - name: Pull and restart containers
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           GF_ADMIN_USER: ${{ secrets.GF_ADMIN_USER }}
           GF_ADMIN_PASSWORD: ${{ secrets.GF_ADMIN_PASSWORD }}
-          SEOUL_API_KEY: ${{ secrets.SEOUL_API_KEY }}
           INFISICAL_TOKEN: ${{ secrets.INFISICAL_TOKEN }}
         run: |
           cd ~/Backend
+          success=false
           for i in 1 2 3; do
-            sudo -E infisical run --env=prod -- docker compose -f docker-compose.yml -f docker-compose.prod.yml pull && break
+            sudo -E infisical run --env=prod -- \
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml pull && success=true && break
             echo "Pull failed (attempt $i/3), retrying in 10s..."
             sleep 10
           done
-          sudo -E infisical run --env=prod -- docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+          if [ "$success" = false ]; then
+            echo "::error::docker pull failed after 3 attempts"
+            exit 1
+          fi
+          sudo -E infisical run --env=prod -- \
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+      - name: Ensure MySQL DB users exist
+        env:
+          INFISICAL_TOKEN: ${{ secrets.INFISICAL_TOKEN }}
+        run: |
+          cd ~/Backend
+          echo "Waiting for MySQL to be healthy..."
+          for i in $(seq 1 30); do
+            if sudo docker exec backend-mysql-1 mysqladmin ping -uroot -proot --silent 2>/dev/null; then
+              echo "MySQL is ready."
+              break
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 2
+          done
+          sudo -E infisical run --env=prod -- bash -c '
+            docker exec backend-mysql-1 mysql -uroot -proot -e "
+              CREATE USER IF NOT EXISTS \"${CONGESTION_DB_USERNAME}\"@\"%\" IDENTIFIED BY \"${CONGESTION_DB_PASSWORD}\";
+              GRANT ALL PRIVILEGES ON danburn_congestion.* TO \"${CONGESTION_DB_USERNAME}\"@\"%\";
+              CREATE USER IF NOT EXISTS \"${MAP_DB_USERNAME}\"@\"%\" IDENTIFIED BY \"${MAP_DB_PASSWORD}\";
+              GRANT ALL PRIVILEGES ON danburn_map.* TO \"${MAP_DB_USERNAME}\"@\"%\";
+              FLUSH PRIVILEGES;
+            "
+          '
+          echo "DB users ensured. Restarting services..."
+          sudo docker restart backend-service-congestion-1 backend-service-map-1 || true
 
       - name: Start Portainer (if not running)
         run: |

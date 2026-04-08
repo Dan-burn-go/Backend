@@ -7,6 +7,7 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: update
     show-sql: false
@@ -15,9 +16,15 @@ spring:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: 6379
       password: ${SPRING_DATA_REDIS_PASSWORD:}
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:guest}
+    password: ${SPRING_RABBITMQ_PASSWORD:guest}
 
 server:
   port: 8082
+  forward-headers-strategy: framework
 
 management:
   endpoints:
@@ -31,11 +38,16 @@ management:
     distribution:
       percentiles-histogram:
         http.server.requests: true
+  tracing:
+    sampling:
+      probability: 1.0
   otlp:
     metrics:
       export:
         url: ${OTLP_URL:http://localhost:4318/v1/metrics}
         step: 10s
+    tracing:
+      endpoint: ${OTLP_TRACES_URL:http://localhost:4318/v1/traces}
 
 logging:
   loki:

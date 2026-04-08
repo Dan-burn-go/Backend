@@ -11,6 +11,8 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+
+import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,8 +32,6 @@ public class RealSeoulApiClient implements SeoulApiClient {
     private final String apiKey;
     private final ExecutorService executor;
 
-    private static final String URL_TEMPLATE =
-            "http://openapi.seoul.go.kr:8088/{apiKey}/json/citydata_ppltn/1/5/{areaName}";
     public RealSeoulApiClient(
             RestTemplateBuilder restTemplateBuilder,
             ObjectMapper objectMapper,
@@ -83,12 +83,14 @@ public class RealSeoulApiClient implements SeoulApiClient {
 
     private CongestionApiResponse fetchOne(SeoulArea area) {
         try {
-            String response = restTemplate.getForObject(
-                    URL_TEMPLATE, String.class, apiKey, area.getName());
+            String encodedName = area.getName().replace(" ", "%20");
+            String url = "http://openapi.seoul.go.kr:8088/" + apiKey
+                    + "/json/citydata_ppltn/1/5/" + encodedName;
+            String response = restTemplate.getForObject(URI.create(url), String.class);
             return parseResponse(response, area);
         } catch (Exception e) {
-            log.warn("[SeoulApiClient] API 호출 실패 - area={}, error={}",
-                    area.getName(), e.getClass().getSimpleName());
+            log.warn("[SeoulApiClient] API 호출 실패 - area={}({}), error={}, message={}",
+                    area.getName(), area.getCode(), e.getClass().getSimpleName(), e.getMessage());
             return null;
         }
     }
@@ -97,19 +99,17 @@ public class RealSeoulApiClient implements SeoulApiClient {
         try {
             JsonNode root = objectMapper.readTree(json);
 
-            JsonNode resultNode = root.path("RESULT");
-            String resultCode = resultNode.path("RESULT.CODE").asText();
-            if (!"INFO-000".equals(resultCode)) {
-                log.warn("[SeoulApiClient] API 오류 응답 - area={}, code={}, message={}",
-                        area.getName(), resultCode, resultNode.path("RESULT.MESSAGE").asText());
+            JsonNode dataArray = root.path("SeoulRtd.citydata_ppltn");
+            if (dataArray.isMissingNode() || !dataArray.isArray() || dataArray.isEmpty()) {
+                String resultCode = root.path("RESULT").path("CODE").asText();
+                String resultMessage = root.path("RESULT").path("MESSAGE").asText();
+                log.warn("[SeoulApiClient] API 오류 응답 - area={}({}), code={}, message={}, raw={}",
+                        area.getName(), area.getCode(), resultCode, resultMessage,
+                        json.length() > 200 ? json.substring(0, 200) + "..." : json);
                 return null;
             }
 
-            JsonNode data = root.path("SeoulRtd.citydata_ppltn").get(0);
-            if (data == null) {
-                log.warn("[SeoulApiClient] 응답 데이터 없음 - area={}", area.getName());
-                return null;
-            }
+            JsonNode data = dataArray.get(0);
 
             List<CongestionApiResponse.ForecastResponse> forecasts = new ArrayList<>();
             JsonNode fcstNode = data.path("FCST_PPLTN");
@@ -135,8 +135,8 @@ public class RealSeoulApiClient implements SeoulApiClient {
                     forecasts
             );
         } catch (Exception e) {
-            log.warn("[SeoulApiClient] 응답 파싱 실패 - area={}, error={}",
-                    area.getName(), e.getClass().getSimpleName());
+            log.warn("[SeoulApiClient] 응답 파싱 실패 - area={}({}), error={}",
+                    area.getName(), area.getCode(), e.getClass().getSimpleName());
             return null;
         }
     }

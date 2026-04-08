@@ -1,275 +1,79 @@
-# Dan-burn-go Backend — Product Requirements Document (PRD)
-
-> **작성일:** 2026-03-31 | **버전:** 1.3
-
----
-
-## 1. Executive Summary
-
-**Dan-burn-go**는 서울의 주요 관광지·번화가의 **실시간 혼잡도 데이터**를 수집·분석하여 사용자에게 대체 장소와 교통 정보를 추천하는 마이크로서비스 백엔드입니다.
-
-**핵심 가치:** 서울시 공공 API와 연동해 122개 주요 장소의 실시간 인구 혼잡도를 제공하고, AI 기반 예측과 대체 경로를 추천합니다.
-
-**기술 스택:**
-
-- Java 21, Spring Boot 3.4.5, Spring Cloud 2024.0.2
-- MySQL 8.0 (Spatial Index), Redis 7
-- RabbitMQ (메시지 큐)
-- Python 3.12 (FastAPI) — AI Analysis Service
-- Docker Compose
-- Monitoring + Logging: grafana/otel-lgtm → Slack 알림
-- Frontend: Vercel (React)
-
----
-
-## 2. System Architecture
-
-### 2.1 모듈 구조
-
-| 모듈 | 포트 | 역할 | DB / 인프라 |
-| --- | --- | --- | --- |
-| **API Gateway** | 8080 | 라우팅 | 없음 |
-| **Congestion Analysis Service** | 8082 | 혼잡도 수집·저장·제공 | Redis (캐싱) + MySQL (이력) |
-| **Map Service** | 8083 | 장소 탐색·추천 | MySQL (Spatial Index) |
-| **Mobility Service** | 8084 | 교통 경로 추천 | 없음 (외부 API만 사용) |
-| **AI Analysis Service** | 8085 | AI 혼잡 원인 분석 | 없음 (RabbitMQ 수신 → Redis 저장) |
-| **service-common** | - | 공유 라이브러리 | - |
-
-### 2.2 서비스 간 통신 흐름
-
-```
-[데이터 수집]
-서울시 공공 API → Congestion Service → Redis 캐싱 + MySQL 이력
-
-[서비스 간 비동기 통신 — 유일한 서비스 간 통신]
-Congestion Service → (혼잡도 일정 이상) → RabbitMQ → AI Service → Redis (리포트)
-
-[독립 서비스 — 다른 서비스 호출 없음]
-Map Service      → MySQL Spatial 후보 추출 → 외부 길찾기 API → 소요시간 순 정렬
-Mobility Service → 외부 버스 API → 소요시간 순 경로 추천
-
-[AI 리포트 조회]
-클라이언트 → Congestion Service API → Redis에서 AI 리포트 읽어서 제공
-
-[프론트엔드 조합]
-프론트엔드 → Congestion API → 혼잡도 데이터 표시 (지도 Heatmap 등)
-프론트엔드 → Map API → 대체지 후보 반환
-프론트엔드 → Mobility API → 버스 경로 반환
-```
-
-### 2.3 Observability
-
-- **grafana/otel-lgtm** 단일 컨테이너 (Grafana + Prometheus + Loki + OTel Collector 내장)
-- 서비스 4~5개 규모에서는 단일 컨테이너로 충분하다 판단
-
----
-
-## 3. 모듈 상세 명세
-
-### 3.1 service-common (공유 라이브러리)
-
-| 클래스 | 역할 |
-| --- | --- |
-| `BaseEntity` | JPA 기본 엔티티 (createdAt, updatedAt, deletedAt) |
-| `ApiResponse<T>` | 통일된 API 응답 래퍼 |
-| `GlobalException` | HTTP 상태 코드 기반 커스텀 예외 |
-
-### 3.2 Congestion Analysis Service (혼잡도 분석)
-
-**DB:** Redis (실시간 캐싱, 15분 TTL) + MySQL (7일 이력 저장)
-
-**역할:** 혼잡도 데이터 수집·저장·제공에 집중. AI 리포트도 이 서비스를 통해 클라이언트에 제공.
-
-**도메인 모델:**
-
-```
-Congestion
-├── areaCode (String, 122개 서울 주요 장소)
-├── congestionLevel (RELAXED | NORMAL | SLIGHTLY_CROWDED | BUSY)
-├── congestionMessage (String)
-├── minPeopleCount / maxPeopleCount (Integer)
-├── populationTime (LocalDateTime)
-└── forecast (JSON, 3시간 예보)
-```
-
-**현재 구현된 기능:**
-
-- 서울시 API에서 5분 간격으로 122개 장소 혼잡도 데이터 수집
-- Redis 캐싱 (15분 TTL, 파이프라인 배치 저장)
-- MySQL 이력 저장 (비동기 `@Async` 백그라운드 처리, 7일 보관)
-- 데이터 정리 (매일 03:00 크론으로 7일 이상 데이터 삭제)
-- Stub 클라이언트 (API Key 미설정 시 더미 데이터 제공, 개발용)
-
-**계획된 기능:**
-
-- **혼잡도 분석 요청 발행** (Must Have) — 혼잡도가 BUSY(붐빔) 이상일 때 해당 장소의 areaCode, congestionLevel, populationTime을 RabbitMQ 메시지로 발행. AI Service가 이를 수신하여 원인 분석 수행
-- **AI 리포트 조회 API** (Must Have) — AI Service가 Redis에 저장한 분석 리포트(자연어 혼잡 원인 문장)를 areaCode 기반으로 읽어서 클라이언트에 제공
-- **혼잡/한적 순위 API** (Should Have) — 혼잡도 높은 순/낮은 순 실시간 랭킹 정렬 제공
-- **과거 통계 API** (Should Have) — 24시간 시간별·요일별 혼잡도 추이 데이터 제공 (MySQL 이력 데이터 기반)
-
-### 3.3 Map Service (장소 탐색·추천) — 개발 예정
-
-**DB:** MySQL (Spatial Index)
-
-**역할:** "어디로 갈지" — 장소 데이터 관리 + 대체지 추천
-
-**계획된 기능:**
-
-- **대체지 추천** (Must Have) — 프론트엔드가 혼잡 장소의 좌표·카테고리를 전달하면, MySQL Spatial(`ST_Distance_Sphere`)로 반경 2km 이내 유사 카테고리 후보 추출 → 외부 길찾기 API(카카오/네이버)로 각 후보까지 소요시간 병렬 조회 → 소요시간 순 정렬 반환. 혼잡도 필터링은 프론트엔드가 Congestion API 데이터로 처리
-- **문화 정보** (Should Have) — 장소 상세에 현재 진행 중인 행사명·시간·장소 노출
-- **맛집/놀거리 추천** (Could Have) — 혼잡도 보통 이하 장소 중 외부 맛집 API 평점 순 리스트
-
-**의존:**
-
-- 외부 길찾기 API (카카오/네이버) → 대체지 소요시간 계산
-
-### 3.4 Mobility Service (교통 경로 추천) — 개발 예정
-
-**DB:** 없음 (외부 API만 사용)
-
-**역할:** "어떻게 갈지" — 교통 경로 추천
-
-**계획된 기능:**
-
-- **버스 노선 기반 경로 추천** (Must Have) — 출발지·목적지 입력 → 외부 버스 API로 경로 리스트 조회 → 소요시간 순 정렬
-
-**의존:**
-
-- 외부 버스/경로 API → 노선·경로 데이터
-
-### 3.5 AI Analysis Service (AI 분석) — 개발 예정
-
-**DB:** 없음
-
-**인프라:** RabbitMQ에서 분석 요청 수신, 결과를 Redis에 캐싱
-
-**계획된 기능:**
-
-- **AI 혼잡 원인 분석** (Could Have) — RabbitMQ에서 areaCode·congestionLevel·populationTime을 수신 → 시간대, 요일, 주변 행사, 과거 패턴 등을 종합 분석 → "현재 출근 인파로 인해 평소보다 20% 더 혼잡합니다" 같은 자연어 원인 문장 생성 → Redis에 `ai-report:{areaCode}` 키로 캐싱
-
----
-
-## 4. 인프라 & 배포
-
-### 4.1 Docker Compose 구성
-
-```
-Application 클러스터:
-  ├── API Gateway (:8080)
-  ├── Congestion Analysis Service (:8082)
-  ├── Map Service (:8083)
-  ├── Mobility Service (:8084)
-  └── AI Analysis Service (:8085)
-
-데이터 인프라:
-  ├── MySQL 8.0
-  ├── Redis 7-alpine
-  └── RabbitMQ
-
-Monitoring 클러스터:
-  ├── Grafana + Prometheus + cAdvisor
-  → Slack 알림 전송
-
-Logging 클러스터:
-  ├── Grafana + Grafana Loki
-
-Network: backend-net (bridge)
-Volume: mysql-data
-```
-
-**기동 순서:** MySQL, Redis, RabbitMQ → 각 서비스 → Gateway
-
-### 4.2 빌드
-
-- **Gradle 8.12** (멀티모듈)
-- **Dockerfile**: 멀티스테이지 빌드 (gradle:8.12-jdk21-alpine → eclipse-temurin:21-jre-alpine)
-
----
-
-## 5. 성능 & 확장성
-
-### 5.1 예상 성능
-
-| 지표 | 값 |
-| --- | --- |
-| Redis 조회 | ~1-5ms |
-| DB 조회 | ~50-100ms |
-| API 응답 시간 | <50ms (캐시 히트) |
-| 스케줄러 1사이클 | ~3-5s (122개 장소 병렬) |
-| 동시 사용자 | 1,000+ (무상태 설계) |
-
----
-
-## 6. 기능 백로그 (서비스별, MoSCoW 우선순위)
-
-### 6.1 Congestion Analysis Service
-
-| 우선순위 | 기능 | 유저스토리 | 수용 조건 | SP | 상태 |
-| --- | --- | --- | --- | --- | --- |
-| Must Have | **실시간 혼잡도** | 실시간 혼잡도 | 1. 장소 검색 시 현재 밀집 인원 기반의 혼잡도 등급(원활~매우 혼잡)이 실시간으로 표시된다. 2. 데이터 업데이트 주기를 명시하여 정보의 신선도를 보장한다. | 중 | Backlog |
-| Should Have | **과거 통계 그래프** | 과거 통계 그래프 | 1. 24시간 기준의 시간별 혼잡도 추이를 꺾은선 그래프로 제공한다. 2. 요일별 평균 데이터를 선택하여 볼 수 있는 필터 기능을 포함한다. | 하 | Backlog |
-| Should Have | **혼잡/한적 순위** | 혼잡/한적 순위 | 1. '실시간 랭킹' 탭에서 혼잡도 높은 순/낮은 순으로 장소 리스트를 정렬하여 보여준다. | 하 | Backlog |
-
-### 6.2 Map Service
-
-| 우선순위 | 기능 | 유저스토리 | 수용 조건 | SP | 상태 |
-| --- | --- | --- | --- | --- | --- |
-| Must Have | **대체지 추천** | 대체지 추천 | 1. '혼잡' 이상의 구역 선택 시, 인근(반경 2km 내)의 유사 카테고리 중 '원활' 상태인 곳을 상단에 노출한다. 2. 외부 길찾기 API로 소요시간을 조회하여 가기 편한 순으로 정렬한다. | 중 | Backlog |
-| Should Have | **문화 정보** | 문화 정보 | 1. 장소 상세 정보에 현재 진행 중인 행사명, 시간, 장소 정보를 텍스트와 이미지로 노출한다. | 하 | Backlog |
-| Could Have | **맛집/놀거리 추천** | 맛집/놀거리 추천 | 1. 혼잡도 '보통' 이하인 장소들 중 외부 맛집 API 평점이 높은 순으로 리스트를 제공한다. | 중 | Backlog |
-| Won't Have | **목적별 필터링** | 목적별 필터링 | 1. 메인 화면 상단에 '카공', '산책', '쇼핑' 등 태그 버튼을 배치하여 지도 마커를 필터링한다. | 하 | Backlog |
-
-### 6.3 Mobility Service
-
-| 우선순위 | 기능 | 유저스토리 | 수용 조건 | SP | 상태 |
-| --- | --- | --- | --- | --- | --- |
-| Must Have | **주요 버스 노선 기반 경로** | 주요 버스 노선 기반 경로 | 1. 출발지와 목적지 입력 시 주요 버스 노선을 포함한 경로 리스트가 출력된다. 2. 소요시간 순으로 정렬되어 가장 빠른 경로가 추천 마크와 함께 표시된다. | 상 | Backlog |
-| Won't Have | **교통 정보** | 교통 정보 | 1. 지도 내에 공공 데이터(TOPIS 등)와 연동된 실시간 도로 소통 정보(원활/서행/정체)를 표시한다. | 하 | Backlog |
-
-### 6.4 AI Analysis Service
-
-| 우선순위 | 기능 | 유저스토리 | 수용 조건 | SP | 상태 |
-| --- | --- | --- | --- | --- | --- |
-| Could Have | **AI 혼잡 원인 분석** | AI 혼잡 원인 분석 | 1. 다각도 데이터를 분석하여 "현재 출근 인파로 인해 평소보다 20% 더 혼잡합니다"와 같은 자연어 문장을 생성한다. | 상 | Backlog |
-
-### 6.5 크로스 서비스
-
-| 우선순위 | 기능 | 유저스토리 | 수용 조건 | SP | 상태 |
-| --- | --- | --- | --- | --- | --- |
-| Won't Have | **재난 문자** | 재난 문자 | 1. GPS상 위험 구역 진입 시 Push 알림을 발송하며, 알림 클릭 시 대피 경로 안내 화면으로 연결한다. | 상 | Backlog |
-
----
-
-## 7. 로드맵
-
-### Phase 1 — 핵심 인프라 (현재) ✅
-
-- 멀티모듈 아키텍처
-- 혼잡도 서비스 (서울시 API 연동) — **실시간 혼잡도** 백엔드 완료
-- API Gateway 라우팅
-- Observability (Grafana + Prometheus + Loki)
-
-### Phase 2 — Must Have 기능 구현
-
-- **대체지 추천**: MySQL Spatial 후보 추출 → 외부 길찾기 API 소요시간 순 (Map Service)
-- **버스 노선 기반 경로 추천**: 외부 버스 API + 소요시간 순 정렬 (Mobility Service)
-- **RabbitMQ 연동**: 혼잡도 일정 이상 시 AI 분석 요청 발행 (Congestion → AI)
-- **AI 리포트 조회 API**: Redis에서 리포트 읽어서 제공 (Congestion Service)
-
-### Phase 3 — Should Have 기능 구현
-
-- **과거 통계 그래프**: 시간별·요일별 혼잡도 추이 API (Congestion Analysis Service)
-- **혼잡/한적 순위**: 실시간 랭킹 정렬 API (Congestion Analysis Service)
-- **문화 정보**: 장소별 행사 정보 연동 (Map Service)
-
-### Phase 4 — Could Have 기능 구현
-
-- **AI 혼잡 원인 분석**: 자연어 혼잡 원인 문장 생성 (AI Analysis Service)
-- **맛집/놀거리 추천**: 외부 맛집 API 연동, 혼잡도 기반 필터링 (Map Service)
-
-### Phase 5 — 인프라 안정화 & 프로덕션 준비
-
-- **서킷브레이커 / 타임아웃 / 폴백**: 서비스 간 통신 장애 대응 (Resilience4j 등)
-- **스케줄러 분산 락**: 수평 확장 시 중복 실행 방지 (ShedLock + Redis)
-- **CORS 설정**: 프론트엔드(Vercel) 도메인 허용
-- **Rate Limiting**: API Gateway에 요청 제한 설정
+# Dan-burn-go Backend
+
+  > 서울 주요 관광지 122곳의 **실시간 혼잡도**를 수집·분석하여, AI 기반 원인 분석과 대체 장소·교통 경로를 추천하는 마이크로서비스 백엔드
+
+   [![CI](https://github.com/Dan-burn-go/Backend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Dan-burn-go/Backend/actions/workflows/ci.yml)
+  [![CD](https://github.com/Dan-burn-go/Backend/actions/workflows/cd.yml/badge.svg?branch=main)](https://github.com/Dan-burn-go/Backend/actions/workflows/cd.yml)
+
+  ---
+
+  ## System Architecture
+
+  <img width="1187" height="665" alt="image" src="https://github.com/user-attachments/assets/97ddb59e-6afc-4a9c-8ee5-413ab43d9f45" />
+
+  ---
+
+  ## Tech Stack
+
+  ![Java](https://img.shields.io/badge/Java_21-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
+  ![Spring Boot](https://img.shields.io/badge/Spring_Boot_3.4.5-6DB33F?style=flat-square&logo=springboot&logoColor=white)
+  ![Spring Cloud](https://img.shields.io/badge/Spring_Cloud_2024.0.2-6DB33F?style=flat-square&logo=spring&logoColor=white)
+  ![Python](https://img.shields.io/badge/Python_3.12-3776AB?style=flat-square&logo=python&logoColor=white)
+  ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)
+  ![MySQL](https://img.shields.io/badge/MySQL_8.0-4479A1?style=flat-square&logo=mysql&logoColor=white)
+  ![Redis](https://img.shields.io/badge/Redis_7-DC382D?style=flat-square&logo=redis&logoColor=white)
+  ![RabbitMQ](https://img.shields.io/badge/RabbitMQ-FF6600?style=flat-square&logo=rabbitmq&logoColor=white)
+  ![Docker](https://img.shields.io/badge/Docker_Compose-2496ED?style=flat-square&logo=docker&logoColor=white)
+  ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=flat-square&logo=githubactions&logoColor=white)
+  ![Grafana](https://img.shields.io/badge/Grafana-F46800?style=flat-square&logo=grafana&logoColor=white)
+  ![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=flat-square&logo=prometheus&logoColor=white)
+  ![Swagger](https://img.shields.io/badge/Swagger_UI-85EA2D?style=flat-square&logo=swagger&logoColor=black)
+
+  ---
+
+  ## Key Features
+
+  ### 1. 실시간 혼잡도 수집 파이프라인
+  - 서울시 공공 API에서 **5분 주기**로 122개 장소 혼잡도 수집
+  - Redis 파이프라인 배치 저장 (15분 TTL) + MySQL 비동기 이력 저장 (`@Async`)
+  - 매일 03:00 크론으로 7일 초과 데이터 자동 정리
+  - API Key 미설정 시 Stub 클라이언트로 더미 데이터 제공 (로컬 개발 지원)
+
+  ### 2. EDA 기반 AI 혼잡 원인 분석
+  - 혼잡도가 **BUSY로 상승 전이**될 때만 이벤트 발행 (상승 엣지 감지)
+  - `congestion.events` Topic Exchange → `congestion.busy` Routing Key
+  - AI Service에서 **10초 배치 윈도우**로 메시지를 모아 Cerebras Cloud API 1회 호출 (토큰 절약)
+  - 분석 결과를 RabbitMQ 역방향 이벤트로 발행, Congestion Service가 Redis 캐싱 + MySQL 저장 일원화
+
+  ### 3. 대체지 추천 (Map Service)
+  - MySQL `ST_Distance_Sphere`로 반경 2km 이내 유사 카테고리 후보 추출
+  - 외부 길찾기 API로 소요시간 병렬 조회 → 가까운 순 정렬
+
+  ### 4. 교통 경로 추천 (Mobility Service)
+  - 외부 버스 API 연동, 소요시간 순 경로 정렬
+
+  ---
+
+  ## Trouble Shooting
+  ### [RabbitMQ 기반 비동기 EDA 구조를 이용한 AI분석 기능 도입] [🔗Blog](https://velog.io/@kim138762/RabbitMQ-%EA%B8%B0%EB%B0%98-%EB%B9%84%EB%8F%99%EA%B8%B0-EDA-%EA%B5%AC%EC%A1%B0%EB%A5%BC-%EC%9D%B4%EC%9A%A9%ED%95%9C-AI%EB%B6%84%EC%84%9D-%EA%B8%B0%EB%8A%A5-%EB%8F%84%EC%9E%85)
+  - **문제**: AI분석 기능 도입 과정에서 5분 주기 수집의 요청 버스트와 AI API 호출 제한의 충돌.
+  - **해결**: Java와 Python 서비스를 분리하고, RabbitMQ 기반의 비동기 EDA 구조를 도입하여 시스템 간 의존성을 완전히 제거.
+  - **결과**: AI API의 호출 제한 내에서 안정적인 분석 처리가 가능해졌으며, 서비스의 장애가 전파되지 않는 장애격리 달성
+ 
+  ### EDA 환경에서의 At-Least-Once + 멱등성 기반 Exactly-Once 정합성 구현
+  - **문제**: RabbitMQ의 최소 한 번 전송 정책으로 인해, 컨슈머 장애 시 메시지 재전송에 의한 중복 유입으로 **통계 데이터가 오염될 가능성 확인**
+  - **해결**: At-Least-Once 전송 보장과 UNIQUE 제약 조건(areaCode + populationTime) 기반의 멱등성 확보로 **사실상의 Exactly-Once 정합성 구현**
+  - **결과**: 장애 상황에서도 데이터 무결성을 유지하고, 중복 호출 방지를 통해 **AI API 토큰 비용 최적화**
+
+  ### (도입 예정)Circuit Breaker 기반 장애 전파 차단 및 캐시 폴백 
+  - **문제**: 서울시 공공 API 타임아웃 또는 AI API rate limit 초과 시, 연속 실패가 서비스 전체 응답 지연으로 전파
+  - **해결 (예정)**: 연쇄 장애 차단 및 가용성 확보를 위한 Resilience4j 기반 Circuit Breaker 설계. 실패율 임계치에 따른 회로 개방과 Half-Open 상태를 통한 자동 복구 프로세스 구축
+  - **기대 결과 (예상)**: 외부 API 장애 시에도 사용자에게 끊김 없는 데이터 제공 (가용성 확보)
+
+  ### (도입 예정)AI 에이전트 기반 실시간 원인 분석 시스템 구축
+  
+  - **문제:** 정량적 수치 기반의 내부 데이터만으로는 실시간 혼잡 원인을 구체적으로 분석하는 데 데이터 한계가 존재
+  - **해결:** MCP와 펑션 콜링 기반 지능형 에이전트를 설계하여 분석에 필요한 외부 맥락 데이터를 실시간으로 동적 수집 및 통합함.
+  - **결과:** 내부 지표와 웹 검색 데이터를 결합해 원인 분석 정확도를 상승시킴
+
+  ---

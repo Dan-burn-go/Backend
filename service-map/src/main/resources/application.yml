@@ -7,6 +7,7 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: update
     show-sql: true
@@ -16,6 +17,7 @@ spring:
 
 server:
   port: 8083
+  forward-headers-strategy: framework
 
 management:
   endpoints:
@@ -29,11 +31,16 @@ management:
     distribution:
       percentiles-histogram:
         http.server.requests: true
+  tracing:
+    sampling:
+      probability: 1.0
   otlp:
     metrics:
       export:
         url: ${OTLP_URL:http://localhost:4318/v1/metrics}
         step: 10s
+    tracing:
+      endpoint: ${OTLP_TRACES_URL:http://localhost:4318/v1/traces}
 
 logging:
   loki:
