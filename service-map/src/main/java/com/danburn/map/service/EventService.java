@@ -1,19 +1,16 @@
 package com.danburn.map.service;
 
 import com.danburn.map.domain.Event;
-import com.danburn.map.domain.Location;
 import com.danburn.map.dto.request.SeoulCultureInfoApiRequest;
 import com.danburn.map.dto.response.SeoulCultureInfoApiResponse;
 import com.danburn.map.infra.SeoulCultureInfoApiClient;
 import com.danburn.map.repository.EventJpaRepository;
-import com.danburn.map.repository.LocationJpaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
@@ -24,7 +21,6 @@ import java.util.Optional;
 public class EventService {
 
     private final EventJpaRepository eventJpaRepository;
-    private final LocationJpaRepository locationJpaRepository;
     private final SeoulCultureInfoApiClient apiClient;
 
     @Transactional
