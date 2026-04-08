@@ -13,8 +13,8 @@ import java.time.LocalDate;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "events", uniqueConstraints = {
     @UniqueConstraint(
-        name = "uk_event_title_place_start_time",
-        columnNames = {"event_title", "place", "start_time"}
+        name = "uk_event_title_place_start_date",
+        columnNames = {"event_title", "place", "start_date"}
     )
 })
 public class Event extends BaseEntity {
