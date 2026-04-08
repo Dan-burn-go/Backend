@@ -269,33 +269,33 @@ Volume: mysql-data
 
 ### Phase 1 — 핵심 인프라 (현재) ✅
 
-- 멀티모듈 아키텍처
-- 혼잡도 서비스 (서울시 API 연동) — **실시간 혼잡도** 백엔드 완료
-- API Gateway 라우팅
-- Observability (Grafana + Prometheus + Loki)
+- 멀티모듈 아키텍처 
+- 혼잡도 서비스 (서울시 API 연동) — **실시간 혼잡도** 백엔드 완료 
+- API Gateway 라우팅 
+- Observability (Grafana + Prometheus + Loki) 
 
 ### Phase 2 — Must Have 기능 구현
 
-- **RabbitMQ 연동**: BUSY 상승 엣지 감지 시 AI 분석 요청 발행 (Congestion → RabbitMQ → AI)
-- **AI 혼잡 원인 분석**: 외부 AI API 연동, 배치 처리(2초 윈도우), RabbitMQ 역방향 이벤트로 Congestion Service에 저장 위임 (AI Service)
-- **AI 리포트 조회 API**: Redis → MySQL 폴백(6시간 이내) (Congestion Service)
+- **RabbitMQ 연동**: BUSY 상승 엣지 감지 시 AI 분석 요청 발행 (Congestion → RabbitMQ → AI) ✅
+- **AI 혼잡 원인 분석**: 외부 AI API 연동, 배치 처리(2초 윈도우), RabbitMQ 역방향 이벤트로 Congestion Service에 저장 위임 (AI Service) ✅
+- **AI 리포트 조회 API**: Redis → MySQL 폴백(6시간 이내) (Congestion Service) ✅
 - **대체지 추천**: MySQL Spatial 후보 추출 → 외부 길찾기 API 소요시간 순 (Map Service)
 - **버스 노선 기반 경로 추천**: 외부 버스 API + 소요시간 순 정렬 (Mobility Service)
 
 ### Phase 3 — Should Have 기능 구현
 
-- **과거 통계 그래프**: 시간별·요일별 혼잡도 추이 API (Congestion Analysis Service)
-- **혼잡/한적 순위**: 실시간 랭킹 정렬 API (Congestion Analysis Service)
-- **문화 정보**: 장소별 행사 정보 연동 (Map Service)
+- **과거 통계 그래프**: 시간별·요일별 혼잡도 추이 API (Congestion Analysis Service) 
+- **혼잡/한적 순위**: 실시간 랭킹 정렬 API (Congestion Analysis Service) 
+- **문화 정보**: 장소별 행사 정보 연동 (Map Service) 
 
 ### Phase 4 — Could Have 기능 구현
 
-- **AI Function Calling 확장**: 축제/행사 API, 기상청 API 연동으로 근거 있는 원인 분석 (AI Service)
+- **AI Function Calling 확장**: 축제/행사 API, 기상청 API 연동으로 근거 있는 원인 분석 (AI Service) 
 - **맛집/놀거리 추천**: 외부 맛집 API 연동, 혼잡도 기반 필터링 (Map Service)
 
 ### Phase 5 — 인프라 안정화 & 프로덕션 준비
 
-- **서킷브레이커 / 타임아웃 / 폴백**: 서비스 간 통신 장애 대응 (Resilience4j 등)
-- **스케줄러 분산 락**: 수평 확장 시 중복 실행 방지 (ShedLock + Redis)
-- **CORS 설정**: 프론트엔드(Vercel) 도메인 허용
-- **Rate Limiting**: API Gateway에 요청 제한 설정
+- **서킷브레이커 / 타임아웃 / 폴백**: 서비스 간 통신 장애 대응 (Resilience4j 등) 
+- **스케줄러 분산 락**: 수평 확장 시 중복 실행 방지 (ShedLock + Redis) 
+- **CORS 설정**: 프론트엔드(Vercel) 도메인 허용 ✅
+- **Rate Limiting**: API Gateway에 요청 제한 설정 ✅
