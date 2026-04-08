@@ -130,6 +130,7 @@ services:
       - OTLP_URL=http://observability:4318/v1/metrics
       - OTLP_TRACES_URL=http://observability:4318/v1/traces
       - LOKI_URL=http://observability:3100/loki/api/v1/push
+      - SEOUL_API_KEY=${SEOUL_API_KEY}
     depends_on:
       mysql:
         condition: service_healthy
