@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "qwen-3-235b-a22b-instruct-2507"
 
+    # Rate Limit (Cerebras Free Tier: 30 RPM, 안전 마진 적용)
+    rate_limit_rpm: int = 25
+
     # RabbitMQ
     rabbitmq_url: str  # amqp://{user}:{pass}@{host}:{port}/
     rabbitmq_queue: str = "ai.congestion.analysis"

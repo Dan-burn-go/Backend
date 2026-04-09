@@ -21,6 +21,11 @@ spring:
     port: ${SPRING_RABBITMQ_PORT:5672}
     username: ${SPRING_RABBITMQ_USERNAME:guest}
     password: ${SPRING_RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        observation-enabled: true
+    template:
+      observation-enabled: true
 
 server:
   port: 8082
