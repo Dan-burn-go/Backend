@@ -51,6 +51,9 @@ class OpenAIAnalyzer(AIAnalyzer):
                 # Ollama/Qwen 호환: response_format은 OpenAI 전용이므로 프롬프트로 JSON 출력 유도
             },
         )
+        if response.status_code == 429:
+            headers = {k: v for k, v in response.headers.items() if "rate" in k.lower() or "retry" in k.lower()}
+            logger.error("[OpenAI] 429 Too Many Requests - headers=%s, body=%s", headers, response.text)
         response.raise_for_status()
 
         try:
