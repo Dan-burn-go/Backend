@@ -9,6 +9,7 @@ from app.rabbitmq.publisher import RabbitMQPublisher
 logger = logging.getLogger(__name__)
 
 MAX_BATCH_RETRY = 2
+RETRY_BASE_DELAY = 5.0  # 초기 대기 시간 (초)
 
 
 class BatchProcessor:
@@ -76,8 +77,10 @@ class BatchProcessor:
         except Exception as e:
             self._retry_count += 1
             if self._retry_count <= MAX_BATCH_RETRY:
-                logger.warning("[BatchProcessor] AI 분석 실패 (%d/%d) - %s, %d건 재삽입",
-                               self._retry_count, MAX_BATCH_RETRY, e, len(events))
+                delay = RETRY_BASE_DELAY * (2 ** (self._retry_count - 1))
+                logger.warning("[BatchProcessor] AI 분석 실패 (%d/%d) - %s, %.0f초 후 %d건 재시도",
+                               self._retry_count, MAX_BATCH_RETRY, e, delay, len(events))
+                await asyncio.sleep(delay)
                 async with self._lock:
                     self._buffer.extend(events)
             else:
