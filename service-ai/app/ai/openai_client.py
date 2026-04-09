@@ -5,6 +5,7 @@ import re
 import httpx
 
 from app.ai.interface import AIAnalyzer
+from app.ai.rate_limiter import RateLimiter
 from app.config import settings
 from app.models.schemas import AnalysisResult, CongestionEvent
 
@@ -28,12 +29,17 @@ class OpenAIAnalyzer(AIAnalyzer):
             headers={"Authorization": f"Bearer {settings.openai_api_key}"},
             timeout=httpx.Timeout(60.0, read=300.0),
         )
+        self._rate_limiter = RateLimiter(
+            max_requests=settings.rate_limit_rpm,
+            period_seconds=60.0,
+        )
 
     async def analyze(self, events: list[CongestionEvent]) -> list[AnalysisResult]:
         user_content = json.dumps(
             [e.model_dump() for e in events], ensure_ascii=False
         )
 
+        await self._rate_limiter.acquire()
         response = await self._client.post(
             "/chat/completions",
             json={
