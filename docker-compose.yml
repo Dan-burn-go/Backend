@@ -192,11 +192,19 @@ services:
       - OTLP_URL=http://observability:4318/v1/metrics
       - OTLP_TRACES_URL=http://observability:4318/v1/traces
       - LOKI_URL=http://observability:3100/loki/api/v1/push
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD:-}
     depends_on:
-      - service-congestion
-      - service-map
-      - service-mobility
-      - service-ai
+      redis:
+        condition: service_healthy
+      service-congestion:
+        condition: service_started
+      service-map:
+        condition: service_started
+      service-mobility:
+        condition: service_started
+      service-ai:
+        condition: service_started
     networks:
       - backend-net
 
