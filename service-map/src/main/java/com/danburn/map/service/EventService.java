@@ -25,11 +25,11 @@ public class EventService {
 
     @Transactional
     public void fetchAndSyncEvents() {
-        int batchSize = 1000; // api 1000개씩 요청 가능
-        int maxBatches = 4; // 추후에 데이터 양 증가될 경우 고려 필요
+        int batchSize = 1000;
+        int maxBatches = 5; // 임시 기본 값
         LocalDate today = LocalDate.now();
 
-        log.info("서울시 문화행사 API 동기화 시작 (최대 {}건)", batchSize * maxBatches);
+        log.info("서울시 문화행사 API 동기화 시작");
         
         for (int i = 0; i < maxBatches; i++) {
             int startIndex = i * batchSize + 1;
@@ -44,6 +44,10 @@ public class EventService {
                 SeoulCultureInfoApiResponse response = apiClient.fetchEvents(request);
 
                 if (response != null && response.culturalEventInfo() != null && response.culturalEventInfo().row() != null) {
+                    if (i == 0 && response.culturalEventInfo().listTotalCount() != null) {
+                        Integer listTotalCount = response.culturalEventInfo().listTotalCount();
+                        maxBatches = (int)Math.ceil((double)listTotalCount / batchSize);
+                    }
                     List<SeoulCultureInfoApiResponse.Row> rows = response.culturalEventInfo().row();
                     upsertEventBatch(rows, today);
 
