@@ -1,10 +1,9 @@
 package com.danburn.map.config;
 
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
 
@@ -12,7 +11,12 @@ import java.time.Duration;
 public class RestClientConfig {
   @Bean
   public RestClient restClient() {
-    return RestClient.create();
-    // 타임 아웃 관련 코드 추후 업데이트
+    SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+    requestFactory.setConnectTimeout(Duration.ofSeconds(5));
+    requestFactory.setReadTimeout(Duration.ofSeconds(5));
+
+    return RestClient.builder()
+      .requestFactory(requestFactory)
+      .build();
   }
 }
