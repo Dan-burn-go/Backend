@@ -11,7 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -24,6 +26,13 @@ public class EventUpsertService {
     int insertCount = 0;
     int updateCount = 0;
 
+    Map<String, Event> existingEventMap = new java.util.HashMap<>();
+    List<Event> allEvents = eventJpaRepository.findAll();
+    for (Event e : allEvents) {
+      String key = e.getEventTitle() + "|" + e.getPlace() + "|" + e.getStartDate();
+      existingEventMap.putIfAbsent(key, e);
+    }
+
     for (SeoulCultureInfoApiResponse.Row row : rows) {
       try {
         LocalDate startDate = parseDate(row.startDate());
@@ -31,12 +40,10 @@ public class EventUpsertService {
 
         if (startDate == null || endDate == null || endDate.isBefore(today)) continue;
 
-        Optional<Event> existingEvent = eventJpaRepository.findByEventTitleAndPlaceAndStartDate(
-          row.title(), row.place(), startDate
-        );
+        String mapKey = row.title() + "|" + row.place() + "|" + startDate;
+        Event event = existingEventMap.get(mapKey);
 
-        if (existingEvent.isPresent()) {
-          Event event = existingEvent.get();
+        if (event != null) {
           event.updateDetails(
             row.description(), endDate, row.codename(), row.useFee(),
             row.inquiry(), row.orgLink(), row.mainImg(),
@@ -59,6 +66,8 @@ public class EventUpsertService {
             .longitude(row.longitude())
             .build();
           eventJpaRepository.save(newEvent);
+
+          existingEventMap.put(mapKey, newEvent);
           insertCount++;
         }
       } catch (Exception e) {
