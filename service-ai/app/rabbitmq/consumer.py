@@ -41,7 +41,7 @@ class RabbitMQConsumer:
             try:
                 self._connection = await aio_pika.connect_robust(settings.rabbitmq_url)
                 self._channel = await self._connection.channel()
-                await self._channel.set_qos(prefetch_count=10)
+                await self._channel.set_qos(prefetch_count=5)
 
                 queue = await self._channel.declare_queue(
                     settings.rabbitmq_queue, durable=True

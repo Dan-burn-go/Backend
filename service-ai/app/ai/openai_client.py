@@ -5,6 +5,7 @@ import re
 import httpx
 
 from app.ai.interface import AIAnalyzer
+from app.ai.rate_limiter import RateLimiter
 from app.config import settings
 from app.models.schemas import AnalysisResult, CongestionEvent
 
@@ -28,12 +29,17 @@ class OpenAIAnalyzer(AIAnalyzer):
             headers={"Authorization": f"Bearer {settings.openai_api_key}"},
             timeout=httpx.Timeout(60.0, read=300.0),
         )
+        self._rate_limiter = RateLimiter(
+            max_requests=settings.rate_limit_rpm,
+            period_seconds=60.0,
+        )
 
     async def analyze(self, events: list[CongestionEvent]) -> list[AnalysisResult]:
         user_content = json.dumps(
             [e.model_dump() for e in events], ensure_ascii=False
         )
 
+        await self._rate_limiter.acquire()
         response = await self._client.post(
             "/chat/completions",
             json={
@@ -45,6 +51,9 @@ class OpenAIAnalyzer(AIAnalyzer):
                 # Ollama/Qwen 호환: response_format은 OpenAI 전용이므로 프롬프트로 JSON 출력 유도
             },
         )
+        if response.status_code == 429:
+            headers = {k: v for k, v in response.headers.items() if "rate" in k.lower() or "retry" in k.lower()}
+            logger.error("[OpenAI] 429 Too Many Requests - headers=%s, body=%s", headers, response.text)
         response.raise_for_status()
 
         try:
