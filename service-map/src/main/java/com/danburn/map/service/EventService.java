@@ -1,6 +1,7 @@
 package com.danburn.map.service;
 
 import com.danburn.map.domain.Event;
+import com.danburn.map.service.EventUpsertService;
 import com.danburn.map.dto.request.SeoulCultureInfoApiRequest;
 import com.danburn.map.dto.response.SeoulCultureInfoApiResponse;
 import com.danburn.map.infra.SeoulCultureInfoApiClient;
@@ -20,10 +21,10 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class EventService {
 
-    private final EventJpaRepository eventJpaRepository;
     private final SeoulCultureInfoApiClient apiClient;
+    private final EventUpsertService eventUpsertService;
+    private final EventJpaRepository eventJpaRepository;
 
-    @Transactional
     public void fetchAndSyncEvents() {
         int batchSize = 1000;
         int maxBatches = 5; // 임시 기본 값
@@ -49,7 +50,7 @@ public class EventService {
                         maxBatches = (int)Math.ceil((double)listTotalCount / batchSize);
                     }
                     List<SeoulCultureInfoApiResponse.Row> rows = response.culturalEventInfo().row();
-                    upsertEventBatch(rows, today);
+                    eventUpsertService.upsertEventBatch(rows, today);
 
                     if (rows.size() < batchSize) break;
                 } else {
@@ -62,64 +63,5 @@ public class EventService {
 
         eventJpaRepository.deleteByEndDateBefore(today);
         log.info("문화행사 동기화 및 기간 만료 데이터 삭제 완료");
-    }
-
-    private void upsertEventBatch(List<SeoulCultureInfoApiResponse.Row> rows, LocalDate today) {
-        int insertCount = 0;
-        int updateCount = 0;
-
-        for (SeoulCultureInfoApiResponse.Row row : rows) {
-            try {
-                LocalDate startDate = parseDate(row.startDate());
-                LocalDate endDate = parseDate(row.endDate());
-
-                if (startDate == null || endDate == null || endDate.isBefore(today)) continue;
-
-                Optional<Event> existingEvent = eventJpaRepository.findByEventTitleAndPlaceAndStartDate(
-                        row.title(), row.place(), startDate
-                );
-
-                if (existingEvent.isPresent()) {
-                    Event event = existingEvent.get();
-                    event.updateDetails(
-                            row.description(), endDate, row.codename(), row.useFee(), 
-                            row.inquiry(), row.orgLink(), row.mainImg(), 
-                            row.latitude(), row.longitude()
-                    );
-                    updateCount++;
-                } else {
-                    Event newEvent = Event.builder()
-                            .eventTitle(row.title())
-                            .place(row.place())
-                            .startDate(startDate)
-                            .endDate(endDate)
-                            .description(row.description())
-                            .inquiry(row.inquiry())
-                            .codename(row.codename())
-                            .useFee(row.useFee())
-                            .orgLink(row.orgLink())
-                            .mainImg(row.mainImg())
-                            .latitude(row.latitude())
-                            .longitude(row.longitude())
-                            .build();
-                    eventJpaRepository.save(newEvent);
-                    insertCount++;
-                }
-            } catch (Exception e) {
-                log.warn("문화행사 데이터 동기화 실패 - 행사명: {}", row.title(), e);
-            }
-        }
-        log.info("배치 처리 완료 - Insert: {}건, Update: {}건", insertCount, updateCount);
-    }
-    
-    private LocalDate parseDate(String dateStr) {
-        if (dateStr == null || dateStr.length() < 10) return null;
-        
-        try {
-            return LocalDate.parse(dateStr.substring(0, 10));
-        } catch (DateTimeParseException e) {
-            log.debug("날짜 파싱 실패 (데이터: {}): {}", dateStr, e.getMessage());
-            return null;
-        }
     }
 }
