@@ -13,8 +13,8 @@ public class EventSyncScheduler {
 
     private final EventService eventService;
 
-    // 실제 서비스에선 새벽 3시로 변경 예정
-    @Scheduled(cron = "0 0 * * * *")
+    // 매주 일요일 새벽 3시 0분 0초에 실행 (초 분 시 일 월 요일)
+    @Scheduled(cron = "0 0 3 * * SUN")
     public void syncCulturalEvents() {
         log.info("[Scheduler] 주간 서울시 문화행사 동기화  시작");
         eventService.fetchAndSyncEvents();
