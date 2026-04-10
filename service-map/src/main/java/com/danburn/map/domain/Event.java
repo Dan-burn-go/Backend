@@ -13,8 +13,8 @@ import java.time.LocalDate;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "events", uniqueConstraints = {
     @UniqueConstraint(
-        name = "uk_event_title_place_start_date",
-        columnNames = {"event_title", "place", "start_date"}
+        name = "uk_event_title_place_start_time",
+        columnNames = {"event_title", "place", "start_time"}
     )
 })
 public class Event extends BaseEntity {
@@ -22,6 +22,10 @@ public class Event extends BaseEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Column(name = "event_id")
   private Long eventId;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "location_id", nullable = false)
+  private Location location;
 
   @Column(name = "event_title", nullable = false, length = 200)
   private String eventTitle;
@@ -60,10 +64,11 @@ public class Event extends BaseEntity {
   private Double longitude;
 
   @Builder
-  public Event(String eventTitle, String description,
+  public Event(Location location, String eventTitle, String description, 
                LocalDate startDate, LocalDate endDate, String codename,
                String place, String useFee, String inquiry, String orgLink, 
                String mainImg, Double latitude, Double longitude) {
+    this.location = location;
     this.eventTitle = eventTitle;
     this.description = description;
     this.startDate = startDate;
