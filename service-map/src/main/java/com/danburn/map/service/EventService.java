@@ -12,7 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -30,7 +32,14 @@ public class EventService {
         LocalDate today = LocalDate.now();
 
         log.info("서울시 문화행사 API 동기화 시작");
-        
+
+        List<Event> allEvents = eventJpaRepository.findAll();
+        Map<String, Event> existingEventMap = new HashMap<>();
+        for (Event e : allEvents) {
+            String key = e.getEventTitle() + "|" + e.getPlace() + "|" + e.getStartDate();
+            existingEventMap.putIfAbsent(key, e);
+        }
+
         for (int i = 0; i < maxBatches; i++) {
             int startIndex = i * batchSize + 1;
             int endIndex = (i + 1) * batchSize;
@@ -49,7 +58,7 @@ public class EventService {
                         maxBatches = (int)Math.ceil((double)listTotalCount / batchSize);
                     }
                     List<SeoulCultureInfoApiResponse.Row> rows = response.culturalEventInfo().row();
-                    eventUpsertService.upsertEventBatch(rows, today);
+                    eventUpsertService.upsertEventBatch(rows, today, existingEventMap);
 
                     if (rows.size() < batchSize) break;
                 } else {

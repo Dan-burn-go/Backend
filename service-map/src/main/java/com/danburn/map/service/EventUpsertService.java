@@ -20,16 +20,9 @@ public class EventUpsertService {
   private final EventJpaRepository eventJpaRepository;
 
   @Transactional
-  public void upsertEventBatch(List<SeoulCultureInfoApiResponse.Row> rows, LocalDate today) {
+  public void upsertEventBatch(List<SeoulCultureInfoApiResponse.Row> rows, LocalDate today, Map<String, Event> existingEventMap) {
     int insertCount = 0;
     int updateCount = 0;
-
-    Map<String, Event> existingEventMap = new java.util.HashMap<>();
-    List<Event> allEvents = eventJpaRepository.findAll();
-    for (Event e : allEvents) {
-      String key = e.getEventTitle() + "|" + e.getPlace() + "|" + e.getStartDate();
-      existingEventMap.putIfAbsent(key, e);
-    }
 
     for (SeoulCultureInfoApiResponse.Row row : rows) {
       try {
@@ -47,6 +40,7 @@ public class EventUpsertService {
             row.inquiry(), row.orgLink(), row.mainImg(),
             row.latitude(), row.longitude()
           );
+          eventJpaRepository.save(event);
           updateCount++;
         } else {
           Event newEvent = Event.builder()
