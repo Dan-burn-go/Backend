@@ -1,7 +1,6 @@
 package com.danburn.map.service;
 
 import com.danburn.map.domain.Event;
-import com.danburn.map.service.EventUpsertService;
 import com.danburn.map.dto.request.SeoulCultureInfoApiRequest;
 import com.danburn.map.dto.response.SeoulCultureInfoApiResponse;
 import com.danburn.map.infra.SeoulCultureInfoApiClient;
