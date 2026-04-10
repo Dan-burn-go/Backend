@@ -1,0 +1,92 @@
+"""app.ai.openai_client._classify_429 — 429 응답 분류 테스트.
+
+- httpx.Response 직접 생성 → _classify_429 호출
+- 네트워크/respx 없이 모든 분기 검증
+"""
+
+from __future__ import annotations
+
+import json
+
+import httpx
+import pytest
+
+from app.ai.errors import NonRetriableError, RetriableError
+from app.ai.openai_client import _classify_429, _extract_error_code, _parse_retry_after
+
+
+def _make_response(
+    body: dict | str,
+    headers: dict | None = None,
+) -> httpx.Response:
+    body_bytes = body.encode() if isinstance(body, str) else json.dumps(body).encode()
+    return httpx.Response(
+        status_code=429,
+        headers=headers or {},
+        content=body_bytes,
+    )
+
+
+def test_queue_exceeded_is_non_retriable():
+    # queue_exceeded → 헤더 retry=true 여도 NonRetriable
+    response = _make_response(
+        {"error": {"code": "queue_exceeded", "message": "queue full"}},
+        headers={"x-should-retry": "true"},
+    )
+    err = _classify_429(response)
+    assert isinstance(err, NonRetriableError)
+    assert err.error_code == "queue_exceeded"
+
+
+def test_x_should_retry_false_is_non_retriable_even_without_code():
+    # x-should-retry: false → code 없어도 NonRetriable
+    response = _make_response(
+        {"error": {"message": "generic 429"}},
+        headers={"x-should-retry": "false"},
+    )
+    err = _classify_429(response)
+    assert isinstance(err, NonRetriableError)
+
+
+def test_token_quota_exceeded_is_retriable_with_retry_after():
+    response = _make_response(
+        {"error": {"code": "token_quota_exceeded", "message": "tpm"}},
+        headers={"retry-after": "7", "x-should-retry": "true"},
+    )
+    err = _classify_429(response)
+    assert isinstance(err, RetriableError)
+    assert err.error_code == "token_quota_exceeded"
+    assert err.retry_after == pytest.approx(7.0)
+
+
+def test_token_quota_exceeded_fallbacks_to_reset_header():
+    # retry-after 누락 → x-ratelimit-reset-tokens 폴백
+    response = _make_response(
+        {"error": {"code": "token_quota_exceeded"}},
+        headers={"x-ratelimit-reset-tokens": "12.3s"},
+    )
+    err = _classify_429(response)
+    assert isinstance(err, RetriableError)
+    assert err.retry_after == pytest.approx(12.3, abs=0.1)
+
+
+def test_unknown_429_is_retriable_with_default_wait():
+    response = _make_response("not even json", headers={})
+    err = _classify_429(response)
+    assert isinstance(err, RetriableError)
+    assert err.retry_after > 0
+
+
+def test_extract_error_code_handles_bad_json():
+    assert _extract_error_code("") == ""
+    assert _extract_error_code("not json") == ""
+    assert _extract_error_code("[]") == ""  # list → error 필드 없음
+    assert _extract_error_code('{"error": {"code": "foo"}}') == "foo"
+    assert _extract_error_code('{"error": {"type": "bar"}}') == "bar"
+
+
+def test_parse_retry_after_with_missing_headers():
+    from app.ai.openai_client import DEFAULT_RETRY_AFTER
+
+    headers = httpx.Headers({})
+    assert _parse_retry_after(headers) == DEFAULT_RETRY_AFTER
