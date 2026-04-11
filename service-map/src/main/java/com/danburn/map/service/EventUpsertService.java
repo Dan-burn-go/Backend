@@ -38,7 +38,7 @@ public class EventUpsertService {
           event.updateDetails(
             row.description(), endDate, row.codename(), row.useFee(),
             row.inquiry(), row.orgLink(), row.mainImg(),
-            row.latitude(), row.longitude()
+            parseCoordinate(row.latitude()), parseCoordinate(row.longitude())
           );
           eventJpaRepository.save(event);
           updateCount++;
@@ -54,8 +54,8 @@ public class EventUpsertService {
             .useFee(row.useFee())
             .orgLink(row.orgLink())
             .mainImg(row.mainImg())
-            .latitude(row.latitude())
-            .longitude(row.longitude())
+            .latitude(parseCoordinate(row.latitude()))
+            .longitude(parseCoordinate(row.longitude()))
             .build();
           eventJpaRepository.save(newEvent);
 
@@ -76,6 +76,18 @@ public class EventUpsertService {
       return LocalDate.parse(dateStr.substring(0, 10));
     } catch (DateTimeParseException e) {
       log.debug("날짜 파싱 실패 (데이터: {}): {}", dateStr, e.getMessage());
+      return null;
+    }
+  }
+
+  private Double parseCoordinate(String value) {
+    if (value == null || value.isBlank()) return null;
+    try {
+      int tildeIdx = value.indexOf('~');
+      String cleaned = tildeIdx >= 0 ? value.substring(0, tildeIdx) : value;
+      return Double.parseDouble(cleaned.trim());
+    } catch (NumberFormatException e) {
+      log.debug("좌표 파싱 실패 (데이터: {}): {}", value, e.getMessage());
       return null;
     }
   }
