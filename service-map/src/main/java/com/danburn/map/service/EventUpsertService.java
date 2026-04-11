@@ -40,8 +40,8 @@ public class EventUpsertService {
           event.updateDetails(
             row.description(), endDate, row.codename(), row.useFee(),
             row.inquiry(), row.orgLink(), row.mainImg(),
-            parsedLatitude != null ? parsedLatitude : event.getLatitude(),
-            parsedLongitude != null ? parsedLongitude : event.getLongitude()
+            (parsedLatitude != null && parsedLongitude != null) ? parsedLatitude : event.getLatitude(),
+            (parsedLatitude != null && parsedLongitude != null) ? parsedLongitude : event.getLongitude()
           );
           eventJpaRepository.save(event);
           updateCount++;
