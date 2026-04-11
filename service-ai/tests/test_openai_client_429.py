@@ -90,3 +90,56 @@ def test_parse_retry_after_with_missing_headers():
 
     headers = httpx.Headers({})
     assert _parse_retry_after(headers) == DEFAULT_RETRY_AFTER
+
+
+def test_parse_retry_after_plain_seconds():
+    headers = httpx.Headers({"retry-after": "60"})
+    assert _parse_retry_after(headers) == pytest.approx(60.0)
+
+
+def test_parse_retry_after_with_s_suffix():
+    headers = httpx.Headers({"retry-after": "0.12s"})
+    # 0.12 < 1.0 → max clamp 적용
+    assert _parse_retry_after(headers) == pytest.approx(1.0)
+
+    headers = httpx.Headers({"retry-after": "12.3s"})
+    assert _parse_retry_after(headers) == pytest.approx(12.3)
+
+
+def test_parse_retry_after_with_ms_suffix():
+    # 17ms = 0.017s → max clamp로 1.0초
+    headers = httpx.Headers({"retry-after": "17ms"})
+    assert _parse_retry_after(headers) == pytest.approx(1.0)
+
+    # 5000ms = 5.0s
+    headers = httpx.Headers({"x-ratelimit-reset-tokens": "5000ms"})
+    assert _parse_retry_after(headers) == pytest.approx(5.0)
+
+
+def test_parse_retry_after_rejects_http_date():
+    """RFC 7231 HTTP-Date 형식은 잘못 파싱하느니 default로 fall-back."""
+    from app.ai.openai_client import DEFAULT_RETRY_AFTER
+
+    # 표준 HTTP-Date — float() 실패해서 다음 헤더로 넘어가야 함 (catastrophic wait 방지)
+    headers = httpx.Headers({"retry-after": "Wed, 21 Oct 2015 07:28:00 GMT"})
+    assert _parse_retry_after(headers) == DEFAULT_RETRY_AFTER
+
+    # HTTP-Date + 폴백 헤더가 유효 → 폴백 사용
+    headers = httpx.Headers({
+        "retry-after": "Wed, 21 Oct 2015 07:28:00 GMT",
+        "x-ratelimit-reset-tokens": "8s",
+    })
+    assert _parse_retry_after(headers) == pytest.approx(8.0)
+
+
+def test_parse_retry_after_rejects_compound_format():
+    """'1m30s' 같은 복합 형식은 잘못 파싱하느니 default로 fall-back."""
+    from app.ai.openai_client import DEFAULT_RETRY_AFTER
+
+    headers = httpx.Headers({"retry-after": "1m30s"})
+    assert _parse_retry_after(headers) == DEFAULT_RETRY_AFTER
+
+
+def test_parse_retry_after_strips_whitespace():
+    headers = httpx.Headers({"retry-after": "  45  "})
+    assert _parse_retry_after(headers) == pytest.approx(45.0)

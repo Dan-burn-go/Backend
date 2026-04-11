@@ -25,22 +25,32 @@ DEFAULT_RETRY_AFTER = 60.0
 
 
 def _parse_retry_after(headers: httpx.Headers) -> float:
-    """retry-after / x-ratelimit-reset-* 헤더에서 대기 시간 파싱.
+    """retry-after / x-ratelimit-reset-* 헤더에서 대기 시간(초) 파싱.
 
-    - Cerebras retry-after: 초 단위 (누락 가능)
-    - 폴백: x-ratelimit-reset-tokens, x-ratelimit-reset-requests
+    지원 형식:
+    - 정수/소수 초:   ``"60"``, ``"0.12"``
+    - ``s`` 접미사:   ``"0.12s"``
+    - ``ms`` 접미사:  ``"17ms"`` (밀리초 → 초 변환)
+
+    파싱 실패(HTTP-Date, ``"1m30s"`` 등 알 수 없는 형식) → 해당 헤더 스킵 후
+    다음 폴백 헤더로 이동. 모든 헤더 실패 시 :data:`DEFAULT_RETRY_AFTER` 반환.
+
+    HTTP-Date(RFC 7231)는 의도적으로 지원하지 않습니다 — 잘못 파싱하여 수십억
+    초 대기를 유발하느니 default 60초로 fall-back 하는 편이 안전합니다.
     """
     for key in ("retry-after", "x-ratelimit-reset-tokens", "x-ratelimit-reset-requests"):
         raw = headers.get(key)
         if not raw:
             continue
+        raw = raw.strip()
         try:
-            # "0.12s" 같은 suffix 제거
-            cleaned = re.sub(r"[^0-9.]", "", raw)
-            if not cleaned:
-                continue
-            return max(1.0, float(cleaned))
+            if raw.endswith("ms"):
+                return max(1.0, float(raw[:-2]) / 1000.0)
+            if raw.endswith("s"):
+                return max(1.0, float(raw[:-1]))
+            return max(1.0, float(raw))
         except ValueError:
+            # HTTP-Date 등 알 수 없는 형식 → 다음 헤더로 fall-through
             continue
     return DEFAULT_RETRY_AFTER
 
