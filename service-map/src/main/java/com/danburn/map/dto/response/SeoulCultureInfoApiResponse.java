@@ -22,7 +22,7 @@ public record SeoulCultureInfoApiResponse(
             @JsonProperty("PROGRAM") String description,
             @JsonProperty("ORG_LINK") String orgLink,
             @JsonProperty("MAIN_IMG") String mainImg,
-            @JsonProperty("LAT") Double latitude,
-            @JsonProperty("LOT") Double longitude
+            @JsonProperty("LAT") String latitude,
+            @JsonProperty("LOT") String longitude
     ) {}
 }
