@@ -31,7 +31,6 @@ public class LocationCodeMapper {
         log.info("총 {}개의 Location Area Code가 로드되었습니다.", areaCodeToIdMap.size());
     }
 
-    // 외부 서비스(Service)에서 호출할 매핑 메서드
     public Optional<Long> getLocationIdByAreaCode(String apiAreaCode) {
         return Optional.ofNullable(areaCodeToIdMap.get(apiAreaCode));
     }
