@@ -40,7 +40,8 @@ public class EventUpsertService {
           event.updateDetails(
             row.description(), endDate, row.codename(), row.useFee(),
             row.inquiry(), row.orgLink(), row.mainImg(),
-            parsedLatitude, parsedLongitude
+            (parsedLatitude != null && parsedLongitude != null) ? parsedLatitude : event.getLatitude(),
+            (parsedLatitude != null && parsedLongitude != null) ? parsedLongitude : event.getLongitude()
           );
           eventJpaRepository.save(event);
           updateCount++;
@@ -89,7 +90,7 @@ public class EventUpsertService {
       String cleaned = tildeIdx >= 0 ? value.substring(0, tildeIdx) : value;
       return Double.parseDouble(cleaned.trim());
     } catch (NumberFormatException e) {
-      log.debug("좌표 파싱 실패 (데이터: {}): {}", value, e.getMessage());
+      log.warn("좌표 파싱 실패 (데이터: {}): {}", value, e.getMessage());
       return null;
     }
   }
