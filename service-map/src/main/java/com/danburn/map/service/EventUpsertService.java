@@ -33,12 +33,14 @@ public class EventUpsertService {
 
         String mapKey = row.title() + "|" + row.place() + "|" + startDate;
         Event event = existingEventMap.get(mapKey);
+        Double parsedLatitude = parseCoordinate(row.latitude());
+        Double parsedLongitude = parseCoordinate(row.longitude());
 
         if (event != null) {
           event.updateDetails(
             row.description(), endDate, row.codename(), row.useFee(),
             row.inquiry(), row.orgLink(), row.mainImg(),
-            parseCoordinate(row.latitude()), parseCoordinate(row.longitude())
+            parsedLatitude, parsedLongitude
           );
           eventJpaRepository.save(event);
           updateCount++;
@@ -54,8 +56,8 @@ public class EventUpsertService {
             .useFee(row.useFee())
             .orgLink(row.orgLink())
             .mainImg(row.mainImg())
-            .latitude(parseCoordinate(row.latitude()))
-            .longitude(parseCoordinate(row.longitude()))
+            .latitude(parsedLatitude)
+            .longitude(parsedLongitude)
             .build();
           eventJpaRepository.save(newEvent);
 
