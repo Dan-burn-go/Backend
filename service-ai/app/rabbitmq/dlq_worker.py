@@ -63,9 +63,6 @@ class DLQWorker:
         try:
             while self._running:
                 try:
-                    await asyncio.sleep(settings.dlq_reprocess_interval_seconds)
-                    if not self._running:
-                        break
                     reprocessed = await self._reprocess_cycle()
                     if reprocessed > 0:
                         logger.info("[DLQWorker] 재처리 완료 - %d건", reprocessed)
@@ -73,6 +70,9 @@ class DLQWorker:
                     raise
                 except Exception as e:
                     logger.error("[DLQWorker] 사이클 실패 - %s", e)
+                if not self._running:
+                    break
+                await asyncio.sleep(settings.dlq_reprocess_interval_seconds)
         except asyncio.CancelledError:
             logger.info("[DLQWorker] 취소 신호 수신")
             raise
