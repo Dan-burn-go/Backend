@@ -23,8 +23,10 @@ SYSTEM_PROMPT = (
 # retry-after 헤더 누락 시 기본 대기 시간(초)
 DEFAULT_RETRY_AFTER = 60.0
 
+
 # 배치당 응답 토큰 예산 경험치 (rate limiter 사전 추정용)
 RESPONSE_TOKEN_BUDGET = 400
+
 
 
 def _parse_retry_after(headers: httpx.Headers) -> float:
