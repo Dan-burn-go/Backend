@@ -1,4 +1,3 @@
-import asyncio
 import json
 import logging
 from contextlib import asynccontextmanager
@@ -11,6 +10,7 @@ from app.config import settings
 from app.observability import setup_observability, shutdown_observability
 from app.rabbitmq.batch import BatchProcessor
 from app.rabbitmq.consumer import RabbitMQConsumer
+from app.rabbitmq.dlq_worker import DLQWorker
 from app.rabbitmq.publisher import RabbitMQPublisher
 
 logger = logging.getLogger(__name__)
@@ -19,6 +19,7 @@ analyzer = create_analyzer()
 publisher = RabbitMQPublisher()
 batch_processor = BatchProcessor(analyzer, publisher)
 consumer = RabbitMQConsumer(batch_processor)
+dlq_worker = DLQWorker()
 
 
 @asynccontextmanager
@@ -28,11 +29,13 @@ async def lifespan(app: FastAPI):
     await publisher.connect()
     await batch_processor.start()
     await consumer.start()
+    await dlq_worker.start()
     logger.info("[AI Service] 시작 완료")
 
     yield
 
     # shutdown
+    await dlq_worker.stop()
     await consumer.stop()
     await batch_processor.stop()
     await analyzer.close()
