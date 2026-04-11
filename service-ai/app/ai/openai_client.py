@@ -4,8 +4,9 @@ import re
 
 import httpx
 
+from app.ai.errors import NonRetriableError, RetriableError
 from app.ai.interface import AIAnalyzer
-from app.ai.rate_limiter import RateLimiter
+from app.ai.rate_limiter import RateLimiter, estimate_prompt_tokens
 from app.config import settings
 from app.models.schemas import AnalysisResult, CongestionEvent
 
@@ -19,9 +20,98 @@ SYSTEM_PROMPT = (
     "각 항목에 area_code, area_name, analysis_message 필드를 포함하세요."
 )
 
+# retry-after 헤더 누락 시 기본 대기 시간(초)
+DEFAULT_RETRY_AFTER = 60.0
+
+
+def _parse_retry_after(headers: httpx.Headers) -> float:
+    """retry-after / x-ratelimit-reset-* 헤더에서 대기 시간(초) 파싱.
+
+    지원 형식:
+    - 정수/소수 초:   ``"60"``, ``"0.12"``
+    - ``s`` 접미사:   ``"0.12s"``
+    - ``ms`` 접미사:  ``"17ms"`` (밀리초 → 초 변환)
+
+    파싱 실패(HTTP-Date, ``"1m30s"`` 등 알 수 없는 형식) → 해당 헤더 스킵 후
+    다음 폴백 헤더로 이동. 모든 헤더 실패 시 :data:`DEFAULT_RETRY_AFTER` 반환.
+
+    HTTP-Date(RFC 7231)는 의도적으로 지원하지 않습니다 — 잘못 파싱하여 수십억
+    초 대기를 유발하느니 default 60초로 fall-back 하는 편이 안전합니다.
+    """
+    for key in ("retry-after", "x-ratelimit-reset-tokens", "x-ratelimit-reset-requests"):
+        raw = headers.get(key)
+        if not raw:
+            continue
+        raw = raw.strip()
+        try:
+            if raw.endswith("ms"):
+                return max(1.0, float(raw[:-2]) / 1000.0)
+            if raw.endswith("s"):
+                return max(1.0, float(raw[:-1]))
+            return max(1.0, float(raw))
+        except ValueError:
+            # HTTP-Date 등 알 수 없는 형식 → 다음 헤더로 fall-through
+            continue
+    return DEFAULT_RETRY_AFTER
+
+
+def _extract_error_code(body_text: str) -> str:
+    """429 응답 본문에서 error.code 추출. 실패 시 빈 문자열."""
+    try:
+        body = json.loads(body_text)
+    except (json.JSONDecodeError, ValueError):
+        return ""
+    err = body.get("error") if isinstance(body, dict) else None
+    if not isinstance(err, dict):
+        return ""
+    code = err.get("code") or err.get("type") or ""
+    return str(code)
+
+
+def _classify_429(response: httpx.Response) -> Exception:
+    """429 응답 → RetriableError / NonRetriableError 분류."""
+    headers = response.headers
+    body_text = response.text or ""
+    error_code = _extract_error_code(body_text)
+    should_retry_raw = (headers.get("x-should-retry") or "").strip().lower()
+    should_retry = should_retry_raw != "false"
+
+    # 디버깅용 - 핵심 헤더 + 본문 로깅
+    rl_headers = {
+        k: v for k, v in headers.items()
+        if "rate" in k.lower() or "retry" in k.lower()
+    }
+    logger.error(
+        "[OpenAI] 429 Too Many Requests - code=%s, should_retry=%s, headers=%s, body=%s",
+        error_code or "(unknown)",
+        should_retry,
+        rl_headers,
+        body_text,
+    )
+
+    if error_code == "queue_exceeded" or not should_retry:
+        return NonRetriableError(
+            error_code=error_code or "non_retriable_429",
+            message=body_text or "429 Too Many Requests (non-retriable)",
+        )
+
+    if error_code == "token_quota_exceeded":
+        return RetriableError(
+            error_code=error_code,
+            message=body_text or "429 Too Many Requests (token quota)",
+            retry_after=_parse_retry_after(headers),
+        )
+
+    # 알 수 없는 429 → 재시도 가능으로 간주 (기본 대기)
+    return RetriableError(
+        error_code=error_code or "unknown_429",
+        message=body_text or "429 Too Many Requests",
+        retry_after=_parse_retry_after(headers),
+    )
+
 
 class OpenAIAnalyzer(AIAnalyzer):
-    """OpenAI API를 호출하여 혼잡 원인을 분석한다."""
+    """OpenAI (Cerebras) API 호출로 혼잡 원인 분석."""
 
     def __init__(self) -> None:
         self._client = httpx.AsyncClient(
@@ -30,34 +120,53 @@ class OpenAIAnalyzer(AIAnalyzer):
             timeout=httpx.Timeout(60.0, read=300.0),
         )
         self._rate_limiter = RateLimiter(
-            max_requests=settings.rate_limit_rpm,
-            period_seconds=60.0,
+            tpm_limit=settings.tpm_limit,
+            tpd_limit=settings.tpd_limit,
         )
 
     async def analyze(self, events: list[CongestionEvent]) -> list[AnalysisResult]:
         user_content = json.dumps(
             [e.model_dump() for e in events], ensure_ascii=False
         )
+        user_message = f"{user_content}\n\n결과는 Markdown 없이 순수 JSON 객체로만 응답하세요."
 
-        await self._rate_limiter.acquire()
+        # 프롬프트 토큰 사전 추정
+        # - 시스템 + 유저 메시지 + 응답 예산 경험치(배치당 약 400)
+        estimated = (
+            estimate_prompt_tokens(SYSTEM_PROMPT)
+            + estimate_prompt_tokens(user_message)
+            + 400
+        )
+
+        await self._rate_limiter.acquire(estimated)
         response = await self._client.post(
             "/chat/completions",
             json={
                 "model": settings.openai_model,
                 "messages": [
                     {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": f"{user_content}\n\n결과는 Markdown 없이 순수 JSON 객체로만 응답하세요."},
+                    {"role": "user", "content": user_message},
                 ],
-                # Ollama/Qwen 호환: response_format은 OpenAI 전용이므로 프롬프트로 JSON 출력 유도
+                # Ollama/Qwen 호환: response_format 미지원 → 프롬프트로 JSON 출력 유도
             },
         )
+
         if response.status_code == 429:
-            headers = {k: v for k, v in response.headers.items() if "rate" in k.lower() or "retry" in k.lower()}
-            logger.error("[OpenAI] 429 Too Many Requests - headers=%s, body=%s", headers, response.text)
+            # 실패 요청은 토큰 미소비 → 추정치 전액 환불
+            self._rate_limiter.record_actual(0, estimated)
+            raise _classify_429(response)
+
         response.raise_for_status()
 
+        payload = response.json()
+
+        # 응답 수신 후 실제 사용량으로 보정
+        usage = payload.get("usage") or {}
+        actual_total = int(usage.get("total_tokens", estimated))
+        self._rate_limiter.record_actual(actual_total, estimated)
+
         try:
-            content = response.json()["choices"][0]["message"]["content"]
+            content = payload["choices"][0]["message"]["content"]
             # 마크다운 코드블록 제거 방어
             match = re.search(r'```(?:json)?\s*(.*?)```', content, re.DOTALL)
             if match:
