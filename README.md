@@ -59,11 +59,11 @@
   - **문제**: AI분석 기능 도입 과정에서 5분 주기 수집의 요청 버스트와 AI API 호출 제한의 충돌.
   - **해결**: Java와 Python 서비스를 분리하고, RabbitMQ 기반의 비동기 EDA 구조를 도입하여 시스템 간 의존성을 완전히 제거.
   - **결과**: AI API의 호출 제한 내에서 안정적인 분석 처리가 가능해졌으며, 서비스의 장애가 전파되지 않는 장애격리 달성
- 
-  ### EDA 환경에서의 At-Least-Once + 멱등성 기반 Exactly-Once 정합성 구현
-  - **문제**: RabbitMQ의 최소 한 번 전송 정책으로 인해, 컨슈머 장애 시 메시지 재전송에 의한 중복 유입으로 **통계 데이터가 오염될 가능성 확인**
-  - **해결**: At-Least-Once 전송 보장과 UNIQUE 제약 조건(areaCode + populationTime) 기반의 멱등성 확보로 **사실상의 Exactly-Once 정합성 구현**
-  - **결과**: 장애 상황에서도 데이터 무결성을 유지하고, 중복 호출 방지를 통해 **AI API 토큰 비용 최적화**
+
+  ### [DLQ 도입으로 API Rate Limit 환경에서 메시지 유실 제로 달성] [🔗Blog](https://velog.io/@kim138762/DLQ-%EB%8F%84%EC%9E%85%EC%9C%BC%EB%A1%9C-API-Rate-Limit-%ED%99%98%EA%B2%BD%EC%97%90%EC%84%9C-%EB%A9%94%EC%8B%9C%EC%A7%80-%EC%9C%A0%EC%8B%A4-%EC%A0%9C%EB%A1%9C-%EB%8B%AC%EC%84%B1)
+  - 문제: AI 분석 파이프라인에서 외부 API Rate Limit(429) 시 메시지 유실 발생. 쿼터 회복에 수 분 소요되어 단순 재시도로 해결 불가
+  - 해결: RabbitMQ DLQ로 실패/정상 경로를 분리하여, 정상 처리를 막지 않으면서 실패 메시지의 최종 처리를 보장하는 복구 파이프라인 구현
+  - 성과: 배포 후 메시지 유실 0건, DLQ 경유 복구 확인
 
   ### (도입 예정)Circuit Breaker 기반 장애 전파 차단 및 캐시 폴백 
   - **문제**: 서울시 공공 API 타임아웃 또는 AI API rate limit 초과 시, 연속 실패가 서비스 전체 응답 지연으로 전파
