@@ -24,6 +24,11 @@ SYSTEM_PROMPT = (
 DEFAULT_RETRY_AFTER = 60.0
 
 
+# 배치당 응답 토큰 예산 경험치 (rate limiter 사전 추정용)
+RESPONSE_TOKEN_BUDGET = 400
+
+
+
 def _parse_retry_after(headers: httpx.Headers) -> float:
     """retry-after / x-ratelimit-reset-* 헤더에서 대기 시간(초) 파싱.
 
@@ -130,12 +135,10 @@ class OpenAIAnalyzer(AIAnalyzer):
         )
         user_message = f"{user_content}\n\n결과는 Markdown 없이 순수 JSON 객체로만 응답하세요."
 
-        # 프롬프트 토큰 사전 추정
-        # - 시스템 + 유저 메시지 + 응답 예산 경험치(배치당 약 400)
         estimated = (
             estimate_prompt_tokens(SYSTEM_PROMPT)
             + estimate_prompt_tokens(user_message)
-            + 400
+            + RESPONSE_TOKEN_BUDGET
         )
 
         await self._rate_limiter.acquire(estimated)
