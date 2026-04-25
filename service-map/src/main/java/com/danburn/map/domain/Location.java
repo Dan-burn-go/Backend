@@ -29,11 +29,15 @@ public class Location extends BaseEntity {
   @Column(name = "longitude")
   private Double longitude;
 
+  @Column(name = "category", nullable = false, length = 20)
+  private String category;
+
   @Builder
-  public Location(String apiAreaCode, String locationName, Double latitude, Double longitude) {
+  public Location(String apiAreaCode, String locationName, Double latitude, Double longitude, String category) {
     this.apiAreaCode = apiAreaCode;
     this.locationName = locationName;
     this.latitude = latitude;
     this.longitude = longitude;
+    this.category = category;
   }
 }
