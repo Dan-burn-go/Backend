@@ -1,4 +1,4 @@
-INSERT IGNORE INTO locations (area_code, location_name, latitude, longitude, category)
+INSERT INTO locations (area_code, location_name, latitude, longitude, category)
 VALUES
 ('POI001', '강남 MICE 관광특구', 37.51266138067201, 127.05882784390123, 'culture'),
 ('POI002', '동대문 관광특구', 37.569193252641526, 127.01282716149097, 'culture'),
@@ -120,4 +120,5 @@ VALUES
 ('POI128', '홍제폭포', 37.580786747178536, 126.93755129533662, 'park'),
 ('POI129', '송현녹지광장', 37.5765680782914, 126.981715077368, 'culture'),
 ('POI130', '시의회 앞', 37.5675265776628, 126.97653537490392, 'culture'),
-('POI131', '숭례문', 37.5600030088843, 126.975313124237, 'culture');
+('POI131', '숭례문', 37.5600030088843, 126.975313124237, 'culture')
+ON DUPLICATE KEY UPDATE category = VALUES(category);
