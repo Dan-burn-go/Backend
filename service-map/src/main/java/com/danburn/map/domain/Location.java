@@ -29,7 +29,7 @@ public class Location extends BaseEntity {
   @Column(name = "longitude")
   private Double longitude;
 
-  @Column(name = "category", nullable = false, length = 20)
+  @Column(name = "category", length = 20)
   private String category;
 
   @Builder
