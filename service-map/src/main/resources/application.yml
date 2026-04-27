@@ -18,6 +18,9 @@ spring:
   sql:
     init:
       mode: always
+      data-locations:
+        - classpath:data.sql
+        - classpath:alternative_locations_data.sql
 
 server:
   port: 8083
