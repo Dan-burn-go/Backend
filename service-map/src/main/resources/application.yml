@@ -22,6 +22,10 @@ spring:
         - classpath:data.sql
         - classpath:alternative_locations_data.sql
 
+congestion:
+  service:
+    url: ${CONGESTION_SERVICE_URL:http://localhost:8082}
+
 server:
   port: 8083
   forward-headers-strategy: framework
