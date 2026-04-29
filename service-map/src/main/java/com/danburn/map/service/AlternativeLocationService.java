@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.Comparator;
 import java.util.List;
@@ -38,20 +40,24 @@ public class AlternativeLocationService {
         List<AlternativeLocation> alternatives = alternativeLocationJpaRepository
                 .findAlternativeLocationIdOrderByPriority(locationId);
 
-        List<AlternativeLocationResponse> responses = alternatives.stream()
-                .map(alt -> {
+        List<AlternativeLocationResponse> responses = Flux.fromIterable(alternatives)
+                .flatMap(alt -> {
                     String altAreaCode = alt.getAlternativeLocation().getApiAreaCode();
-                    String congestionLevel = congestionApiClient.getCongestionLevel(altAreaCode);
-                    return new AlternativeLocationResponse(
-                            altAreaCode,
-                            alt.getAlternativeLocation().getLocationName(),
-                            alt.getAlternativeLocation().getLatitude(),
-                            alt.getAlternativeLocation().getLongitude(),
-                            alt.getPriority(),
-                            congestionLevel
-                    );
+                    String locationName = alt.getAlternativeLocation().getLocationName();
+                    Double latitude = alt.getAlternativeLocation().getLatitude();
+                    Double longitude = alt.getAlternativeLocation().getLongitude();
+                    Integer priority = alt.getPriority();
+
+                    return congestionApiClient.getCongestionLevel(altAreaCode)
+                            .map(congestionLevel -> new AlternativeLocationResponse(
+                                    altAreaCode, locationName, latitude, longitude, priority, congestionLevel
+                            ))
+                            .switchIfEmpty(Mono.fromSupplier(() -> new AlternativeLocationResponse(
+                                    altAreaCode, locationName, latitude, longitude, priority, null
+                            )));
                 })
-                .toList();
+                .collectList()
+                .block();
 
         return responses.stream()
                 .sorted(Comparator
