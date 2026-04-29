@@ -62,7 +62,9 @@ public class AlternativeLocationService {
         return responses.stream()
                 .sorted(Comparator
                         .comparingInt((AlternativeLocationResponse r) ->
-                                CONGESTION_ORDER.getOrDefault(r.congestionLevel(), Integer.MAX_VALUE))
+                                r.congestionLevel() == null
+                                        ? Integer.MAX_VALUE
+                                        : CONGESTION_ORDER.getOrDefault(r.congestionLevel(), Integer.MAX_VALUE))
                         .thenComparingInt(AlternativeLocationResponse::priority))
                 .toList();
     }
