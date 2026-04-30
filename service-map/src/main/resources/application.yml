@@ -10,10 +10,17 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: update
+    defer-datasource-initialization: true
     show-sql: true
     properties:
       hibernate:
         format_sql: true
+  sql:
+    init:
+      mode: always
+      data-locations:
+        - classpath:data.sql
+        - classpath:alternative_locations_data.sql
 
 server:
   port: 8083
