@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +58,9 @@ public class AlternativeLocationService {
                             )));
                 })
                 .collectList()
+                .timeout(Duration.ofSeconds(10))
+                .onErrorMap(e -> !(e instanceof GlobalException),
+                        e -> new GlobalException(503, "서비스 응답 지연으로 요청을 처리할 수 없습니다."))
                 .block();
 
         return responses.stream()

@@ -7,6 +7,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
+
 @Slf4j
 @Component
 public class CongestionApiClient {
@@ -24,6 +26,8 @@ public class CongestionApiClient {
                 .uri("/api/congestion/{areaCode}", areaCode)
                 .retrieve()
                 .bodyToMono(CongestionApiResponse.class)
+                // Netty 3초 타임아웃
+                .timeout(Duration.ofSeconds(3))
                 .mapNotNull(response ->
                         response.data() != null ? response.data().congestionLevel() : null)
                 .onErrorResume(e -> {
