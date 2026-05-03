@@ -58,7 +58,10 @@ public class AlternativeLocationService {
                             )));
                 })
                 .collectList()
-                .block(Duration.ofSeconds(10));
+                .timeout(Duration.ofSeconds(10))
+                .onErrorMap(e -> !(e instanceof GlobalException),
+                        e -> new GlobalException(503, "서비스 응답 지연으로 요청을 처리할 수 없습니다."))
+                .block();
 
         return responses.stream()
                 .sorted(Comparator
