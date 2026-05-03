@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +58,7 @@ public class AlternativeLocationService {
                             )));
                 })
                 .collectList()
-                .block();
+                .block(Duration.ofSeconds(10));
 
         return responses.stream()
                 .sorted(Comparator
