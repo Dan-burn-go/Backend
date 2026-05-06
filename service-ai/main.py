@@ -6,6 +6,7 @@ import aio_pika
 from fastapi import FastAPI
 
 from app.ai.factory import create_analyzer
+from app.ai.mcp.client import MCPClient
 from app.config import settings
 from app.observability import setup_observability, shutdown_observability
 from app.rabbitmq.batch import BatchProcessor
@@ -15,7 +16,8 @@ from app.rabbitmq.publisher import RabbitMQPublisher
 
 logger = logging.getLogger(__name__)
 
-analyzer = create_analyzer()
+mcp_client = MCPClient()
+analyzer = create_analyzer(mcp_client)
 publisher = RabbitMQPublisher()
 batch_processor = BatchProcessor(analyzer, publisher)
 consumer = RabbitMQConsumer(batch_processor)
@@ -26,6 +28,7 @@ dlq_worker = DLQWorker()
 async def lifespan(app: FastAPI):
     # startup
     setup_observability(app)
+    await mcp_client.start()
     await publisher.connect()
     await batch_processor.start()
     await consumer.start()
@@ -40,6 +43,7 @@ async def lifespan(app: FastAPI):
     await batch_processor.stop()
     await analyzer.close()
     await publisher.close()
+    await mcp_client.stop()
     logger.info("[AI Service] 종료 완료")
     shutdown_observability()
 
