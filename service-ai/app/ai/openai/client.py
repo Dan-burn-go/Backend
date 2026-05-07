@@ -81,26 +81,25 @@ class OpenAIAnalyzer(AIAnalyzer):
                 "content": message.get("content"),
                 "tool_calls": tool_calls,
             })
+            parsed_calls: list[tuple[dict[str, Any], dict[str, Any]]] = []
+            for tc in tool_calls:
+                try:
+                    args = json.loads(tc["function"].get("arguments") or "{}")
+                except json.JSONDecodeError:
+                    args = {}
+                parsed_calls.append((tc, args))
             tool_results = await asyncio.gather(*[
-                self._mcp_client.call_tool(
-                    tc["function"]["name"],
-                    json.loads(tc["function"].get("arguments") or "{}"),
-                )
-                for tc in tool_calls
+                self._mcp_client.call_tool(tc["function"]["name"], args)
+                for tc, args in parsed_calls
             ])
-            for tc, result in zip(tool_calls, tool_results):
+            for (tc, args), result in zip(parsed_calls, tool_results):
                 messages.append({
                     "role": "tool",
                     "tool_call_id": tc["id"],
                     "content": result,
                 })
-                # 로그용 컨텍스트 누적
-                try:
-                    args = json.loads(tc["function"].get("arguments") or "{}")
-                    if args.get("query"):
-                        tool_queries.append(str(args["query"]))
-                except json.JSONDecodeError:
-                    pass
+                if args.get("query"):
+                    tool_queries.append(str(args["query"]))
                 try:
                     parsed_result = json.loads(result)
                     for r in parsed_result.get("results") or []:
@@ -126,35 +125,44 @@ class OpenAIAnalyzer(AIAnalyzer):
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None,
     ) -> dict[str, Any]:
-        """LLM 1회 호출. RateLimiter acquire/record + 429 분류."""
+        """LLM 1회 호출. RateLimiter acquire/record + 429 분류.
+
+        실패 경로에서도 finally 로 추정치 환불 (토큰 누수 방지).
+        """
         estimated = self._estimate_tokens(messages, tools)
         await self._rate_limiter.acquire(estimated)
-
-        body: dict[str, Any] = {
-            "model": settings.openai_model,
-            "messages": messages,
-        }
-        if tools:
-            body["tools"] = tools
-
-        response = await self._client.post("/chat/completions", json=body)
-
-        if response.status_code == 429:
-            self._rate_limiter.record_actual(0, estimated)
-            raise _classify_429(response)
-
-        response.raise_for_status()
-        payload = response.json()
-
-        usage = payload.get("usage") or {}
-        actual_total = int(usage.get("total_tokens", estimated))
-        self._rate_limiter.record_actual(actual_total, estimated)
-
+        recorded = False
         try:
-            return payload["choices"][0]["message"]
-        except (KeyError, IndexError) as e:
-            logger.error("[OpenAI] 응답 파싱 실패 - %s", e)
-            raise
+            body: dict[str, Any] = {
+                "model": settings.openai_model,
+                "messages": messages,
+            }
+            if tools:
+                body["tools"] = tools
+
+            response = await self._client.post("/chat/completions", json=body)
+
+            if response.status_code == 429:
+                self._rate_limiter.record_actual(0, estimated)
+                recorded = True
+                raise _classify_429(response)
+
+            response.raise_for_status()
+            payload = response.json()
+
+            usage = payload.get("usage") or {}
+            actual_total = int(usage.get("total_tokens", estimated))
+            self._rate_limiter.record_actual(actual_total, estimated)
+            recorded = True
+
+            try:
+                return payload["choices"][0]["message"]
+            except (KeyError, IndexError) as e:
+                logger.error("[OpenAI] 응답 파싱 실패 - %s", e)
+                raise
+        finally:
+            if not recorded:
+                self._rate_limiter.record_actual(0, estimated)
 
     def _estimate_tokens(
         self,

@@ -53,8 +53,9 @@ async def search_web(query: str) -> dict[str, Any]:
 
 def _ddg_news(query: str) -> list[dict[str, Any]]:
     """DDG News 동기 호출 (asyncio.to_thread로 wrap)."""
-    return DDGS().news(
-        query=query,
-        region=settings.mcp_search_region,
-        max_results=settings.mcp_search_max_results,
-    ) or []
+    with DDGS() as ddgs:
+        return ddgs.news(
+            query=query,
+            region=settings.mcp_search_region,
+            max_results=settings.mcp_search_max_results,
+        ) or []
