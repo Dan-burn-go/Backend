@@ -1,4 +1,4 @@
-package com.danburn.congestion.config;
+package com.danburn.congestion.config.Redis;
 
 import com.danburn.congestion.dto.CongestionRedisDto;
 import com.fasterxml.jackson.databind.ObjectMapper;

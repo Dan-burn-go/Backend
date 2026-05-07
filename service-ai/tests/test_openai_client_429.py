@@ -1,4 +1,4 @@
-"""app.ai.openai_client._classify_429 — 429 응답 분류 테스트.
+"""app.ai.openai.errors._classify_429 — 429 응답 분류 테스트.
 
 - httpx.Response 직접 생성 → _classify_429 호출
 - 네트워크/respx 없이 모든 분기 검증
@@ -12,7 +12,7 @@ import httpx
 import pytest
 
 from app.ai.errors import NonRetriableError, RetriableError
-from app.ai.openai_client import _classify_429, _extract_error_code, _parse_retry_after
+from app.ai.openai.errors import _classify_429, _extract_error_code, _parse_retry_after
 
 
 def _make_response(
@@ -86,7 +86,7 @@ def test_extract_error_code_handles_bad_json():
 
 
 def test_parse_retry_after_with_missing_headers():
-    from app.ai.openai_client import DEFAULT_RETRY_AFTER
+    from app.ai.openai.errors import DEFAULT_RETRY_AFTER
 
     headers = httpx.Headers({})
     assert _parse_retry_after(headers) == DEFAULT_RETRY_AFTER
@@ -118,7 +118,7 @@ def test_parse_retry_after_with_ms_suffix():
 
 def test_parse_retry_after_rejects_http_date():
     """RFC 7231 HTTP-Date 형식은 잘못 파싱하느니 default로 fall-back."""
-    from app.ai.openai_client import DEFAULT_RETRY_AFTER
+    from app.ai.openai.errors import DEFAULT_RETRY_AFTER
 
     # 표준 HTTP-Date — float() 실패해서 다음 헤더로 넘어가야 함 (catastrophic wait 방지)
     headers = httpx.Headers({"retry-after": "Wed, 21 Oct 2015 07:28:00 GMT"})
@@ -134,7 +134,7 @@ def test_parse_retry_after_rejects_http_date():
 
 def test_parse_retry_after_rejects_compound_format():
     """'1m30s' 같은 복합 형식은 잘못 파싱하느니 default로 fall-back."""
-    from app.ai.openai_client import DEFAULT_RETRY_AFTER
+    from app.ai.openai.errors import DEFAULT_RETRY_AFTER
 
     headers = httpx.Headers({"retry-after": "1m30s"})
     assert _parse_retry_after(headers) == DEFAULT_RETRY_AFTER

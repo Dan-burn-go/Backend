@@ -73,6 +73,11 @@ class _TokenBucket:
         self._refill()
         self._available = min(self._capacity, self._available + tokens)
 
+    def used_ratio(self) -> float:
+        """현재 사용률 (0.0 ~ 1.0). soft limit 판정용."""
+        self._refill()
+        return max(0.0, 1.0 - self._available / self._capacity)
+
 
 class RateLimiter:
     """TPM + TPD 이중 버킷 Rate Limiter."""
@@ -103,6 +108,10 @@ class RateLimiter:
                 wait_tpd,
             )
             await asyncio.sleep(wait)
+
+    def tpd_used_ratio(self) -> float:
+        """TPD 버킷 사용률. soft limit 판정용."""
+        return self._tpd.used_ratio()
 
     def record_actual(self, actual_tokens: int, estimated_tokens: int) -> None:
         """실제 사용량과 추정치 차이 보정.

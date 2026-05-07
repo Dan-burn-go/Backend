@@ -112,13 +112,38 @@ class DLQWorker:
         channel: aio_pika.abc.AbstractChannel,
         message: AbstractIncomingMessage,
     ) -> bool:
-        """메인 큐로 재발행 + 성공 여부 반환."""
+        """메인 큐로 재발행 + 성공 여부 반환.
+
+        헤더 ``x-attempt-count`` 로 메시지별 누적 재시도 횟수 추적.
+        임계(``settings.message_max_attempt``) 초과 시 ack 로 영구 폐기 (무한 루프 차단).
+        """
+        headers = dict(message.headers or {})
+        try:
+            current_attempt = int(headers.get("x-attempt-count", 0) or 0)
+        except (TypeError, ValueError):
+            current_attempt = 0
+
+        if current_attempt >= settings.message_max_attempt:
+            body_preview = (message.body or b"").decode("utf-8", errors="replace")[:200]
+            logger.error(
+                "[DLQWorker] 재시도 한도 초과 - attempt=%d/%d, 영구 폐기 (body=%s)",
+                current_attempt,
+                settings.message_max_attempt,
+                body_preview,
+            )
+            try:
+                await message.ack()
+            except Exception as e:  # pragma: no cover - 방어적 로깅
+                logger.error("[DLQWorker] ack 실패 - %s", e)
+            return False
+
+        headers["x-attempt-count"] = current_attempt + 1
         try:
             new_message = aio_pika.Message(
                 body=message.body,
                 content_type=message.content_type or "application/json",
                 delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                headers=dict(message.headers or {}),
+                headers=headers,
             )
             await channel.default_exchange.publish(
                 new_message,
