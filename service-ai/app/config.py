@@ -8,11 +8,18 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "qwen-3-235b-a22b-instruct-2507"
 
+    # ── MCP Tool Calling ──
+    mcp_max_tool_hops: int = 1
+    mcp_tool_timeout_seconds: float = 5.0
+    mcp_search_max_results: int = 5
+    mcp_search_region: str = "kr-kr"
+
     # ── Rate Limit (토큰 예산 기반) ──
     # - Cerebras Free Tier: TPM 60,000 / TPD 1,000,000
     # - 운영 여유 마진 적용
     tpm_limit: int = 50_000
     tpd_limit: int = 900_000
+    tpd_soft_limit_ratio: float = 0.8
     # 레거시 호환용 (구 RPM 기반 설정)
     rate_limit_rpm: int = 25
 
@@ -30,6 +37,7 @@ class Settings(BaseSettings):
     dlq_max_length: int = 10_000
     dlq_reprocess_interval_seconds: int = 600  # 10분
     dlq_reprocess_batch_max: int = 50
+    message_max_attempt: int = 3
 
     # ── Batch ──
     batch_window_seconds: float = 5.0
