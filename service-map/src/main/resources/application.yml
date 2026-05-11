@@ -28,6 +28,10 @@ congestion:
   service:
     url: ${CONGESTION_SERVICE_URL:http://localhost:8082}
 
+kakao:
+  api:
+    key: ${KAKAO_API_KEY:}
+
 server:
   port: 8083
   forward-headers-strategy: framework
