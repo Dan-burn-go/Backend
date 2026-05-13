@@ -127,6 +127,8 @@ services:
     ports:
       - "8083:8083"
     environment:
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/danburn_map?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=${MAP_DB_USERNAME:-root}
       - SPRING_DATASOURCE_PASSWORD=${MAP_DB_PASSWORD:-root}
@@ -136,6 +138,8 @@ services:
       - SEOUL_API_KEY=${SEOUL_API_KEY}
       - CONGESTION_SERVICE_URL=http://service-congestion:8082
     depends_on:
+      redis:
+        condition: service_healthy
       mysql:
         condition: service_healthy
       service-congestion:

@@ -30,6 +30,8 @@ public class NearbyPlaceController {
     @Operation(summary = "주변 장소 조회", description = "위도/경도 기준 1km 이내 주변 장소를 카테고리별로 조회합니다.")
     @GetMapping("/nearby-places")
     public ApiResponse<List<NearbyPlaceResponse>> getNearbyPlaces(
+            @Parameter(description = "지역 코드 (예: POI009)", example = "POI009")
+            @RequestParam String areaCode,
             @Parameter(description = "카테고리 코드 (ALL/FD6/CE7/AT4/CT1)", example = "ALL")
             @Pattern(regexp = "ALL|FD6|CE7|AT4|CT1", message = "유효하지 않은 카테고리 코드입니다.")
             @RequestParam(defaultValue = "ALL") String categoryCode,
@@ -38,6 +40,6 @@ public class NearbyPlaceController {
             @Parameter(description = "경도 (124.5 ~ 132.0)", example = "126.9769")
             @RequestParam @DecimalMin("124.5") @DecimalMax("132.0") Double longitude) {
 
-        return ApiResponse.ok(nearbyPlaceService.getNearbyPlaces(categoryCode, longitude, latitude));
+        return ApiResponse.ok(nearbyPlaceService.getNearbyPlaces(areaCode, categoryCode, longitude, latitude));
     }
 }

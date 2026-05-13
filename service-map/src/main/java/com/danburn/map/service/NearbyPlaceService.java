@@ -3,10 +3,14 @@ package com.danburn.map.service;
 import com.danburn.map.dto.response.KakaoLocalApiResponse;
 import com.danburn.map.dto.response.NearbyPlaceResponse;
 import com.danburn.map.infra.KakaoLocalApiClient;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.List;
 
 @Slf4j
@@ -15,19 +19,44 @@ import java.util.List;
 public class NearbyPlaceService {
 
     private static final List<String> ALL_CATEGORY_CODES = List.of("FD6", "CE7", "AT4", "CT1");
+    private static final Duration CACHE_TTL = Duration.ofHours(1);
 
     private final KakaoLocalApiClient kakaoLocalApiClient;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final ObjectMapper objectMapper;
 
-    public List<NearbyPlaceResponse> getNearbyPlaces(String categoryCode, double longitude, double latitude) {
+    public List<NearbyPlaceResponse> getNearbyPlaces(String areaCode, String categoryCode, double longitude, double latitude) {
         if ("ALL".equals(categoryCode)) {
             return ALL_CATEGORY_CODES.parallelStream()
-                    .flatMap(code -> fetchFromKakao(code, longitude, latitude).stream())
+                    .flatMap(code -> fetchWithCache(areaCode, code, longitude, latitude).stream())
                     .toList();
         }
-        return fetchFromKakao(categoryCode, longitude, latitude);
+        return fetchWithCache(areaCode, categoryCode, longitude, latitude);
     }
 
-    // TODO: Redis 캐싱 추가 시 이 메서드에 캐시 읽기/쓰기 로직 삽입
+    private List<NearbyPlaceResponse> fetchWithCache(String areaCode, String categoryCode, double longitude, double latitude) {
+        String cacheKey = "map:nearby:" + areaCode + ":" + categoryCode;
+
+        try {
+            String cached = stringRedisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                return objectMapper.readValue(cached, new TypeReference<>() {});
+            }
+        } catch (Exception e) {
+            log.warn("Redis 캐시 읽기 실패 - key: {}", cacheKey, e);
+        }
+
+        List<NearbyPlaceResponse> result = fetchFromKakao(categoryCode, longitude, latitude);
+
+        try {
+            stringRedisTemplate.opsForValue().set(cacheKey, objectMapper.writeValueAsString(result), CACHE_TTL);
+        } catch (Exception e) {
+            log.warn("Redis 캐시 쓰기 실패 - key: {}", cacheKey, e);
+        }
+
+        return result;
+    }
+
     private List<NearbyPlaceResponse> fetchFromKakao(String categoryCode, double longitude, double latitude) {
         try {
             KakaoLocalApiResponse response = kakaoLocalApiClient.fetchNearbyPlaces(categoryCode, longitude, latitude);
