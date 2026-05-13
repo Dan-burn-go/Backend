@@ -18,7 +18,7 @@ public class NearbyPlaceService {
 
     public List<NearbyPlaceResponse> getNearbyPlaces(String categoryCode, double longitude, double latitude) {
         if ("ALL".equals(categoryCode)) {
-            return ALL_CATEGORY_CODES.stream()
+            return ALL_CATEGORY_CODES.parallelStream()
                     .flatMap(code -> fetchFromKakao(code, longitude, latitude).stream())
                     .toList();
         }
