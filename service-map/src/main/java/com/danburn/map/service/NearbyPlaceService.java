@@ -4,10 +4,12 @@ import com.danburn.map.dto.response.KakaoLocalApiResponse;
 import com.danburn.map.dto.response.NearbyPlaceResponse;
 import com.danburn.map.infra.KakaoLocalApiClient;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NearbyPlaceService {
@@ -44,6 +46,7 @@ public class NearbyPlaceService {
                     ))
                     .toList();
         } catch (Exception e) {
+            log.warn("카카오 API 호출 실패 - categoryCode: {}", categoryCode, e);
             return List.of();
         }
     }

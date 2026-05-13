@@ -31,7 +31,7 @@ public class NearbyPlaceController {
     @GetMapping("/nearby-places")
     public ApiResponse<List<NearbyPlaceResponse>> getNearbyPlaces(
             @Parameter(description = "카테고리 코드 (ALL/FD6/CE7/AT4/CT1)", example = "ALL")
-            @Pattern(regexp = "FD6|CE7|AT4|CT1", message = "유효하지 않은 카테고리 코드입니다.")
+            @Pattern(regexp = "ALL|FD6|CE7|AT4|CT1", message = "유효하지 않은 카테고리 코드입니다.")
             @RequestParam(defaultValue = "ALL") String categoryCode,
             @Parameter(description = "위도 (33.0 ~ 38.9)", example = "37.5759")
             @RequestParam @DecimalMin("33.0") @DecimalMax("38.9") Double latitude,
