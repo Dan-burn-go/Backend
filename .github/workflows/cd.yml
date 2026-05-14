@@ -74,6 +74,17 @@ jobs:
             exit 1
           fi
 
+      - name: Pre-deploy disk cleanup
+        run: |
+          df -h /
+          # 7일 이상 안 쓴 이미지·빌드 캐시 정리 (운영 이미지는 필터로 제외)
+          sudo docker image prune -af --filter "until=168h" || true
+          sudo docker builder prune -af --filter "until=168h" || true
+          # 7일 이상 된 컨테이너 로그 truncate
+          sudo find /var/lib/docker/containers -name "*.log" -type f -mtime +7 \
+            -exec truncate -s 0 {} \; 2>/dev/null || true
+          df -h /
+
       - name: Pull and restart containers
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
