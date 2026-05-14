@@ -38,14 +38,16 @@ def test_queue_exceeded_is_non_retriable():
     assert err.error_code == "queue_exceeded"
 
 
-def test_x_should_retry_false_is_non_retriable_even_without_code():
-    # x-should-retry: false → code 없어도 NonRetriable
+def test_x_should_retry_false_alone_is_retriable():
+    # x-should-retry: false 만으로는 NonRetriable 로 보내지 않음 (high-traffic
+    # 일시 응답이 NonRetriable 로 잘못 분류되어 DLQ 로 빠지는 것을 방지).
     response = _make_response(
-        {"error": {"message": "generic 429"}},
+        {"error": {"message": "We're experiencing high traffic right now!"}},
         headers={"x-should-retry": "false"},
     )
     err = _classify_429(response)
-    assert isinstance(err, NonRetriableError)
+    assert isinstance(err, RetriableError)
+    assert err.retry_after > 0
 
 
 def test_token_quota_exceeded_is_retriable_with_retry_after():

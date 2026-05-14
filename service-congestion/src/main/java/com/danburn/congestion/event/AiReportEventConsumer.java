@@ -1,14 +1,12 @@
 package com.danburn.congestion.event;
 
 import com.danburn.congestion.config.rabbitmq.RabbitMqConfig;
-import com.danburn.congestion.domain.AiReport;
 import com.danburn.congestion.repository.AiReportRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -28,21 +26,21 @@ public class AiReportEventConsumer {
 
     @RabbitListener(queues = RabbitMqConfig.AI_REPORT_QUEUE_NAME)
     public void handleAiReport(AiReportEvent event) {
-        AiReport aiReport = AiReport.builder()
-                .areaName(event.areaName())
-                .areaCode(event.areaCode())
-                .congestionLevel(event.congestionLevel())
-                .analysisMessage(event.analysisMessage())
-                .populationTime(event.populationTime())
-                .build();
+        int inserted = aiReportRepository.insertIfAbsent(
+                event.areaName(),
+                event.areaCode(),
+                event.congestionLevel(),
+                event.analysisMessage(),
+                event.populationTime());
 
-        try {
-            aiReportRepository.save(aiReport);
-            cacheToRedis(event);
-            log.info("[AiReportConsumer] AI 분석 결과 저장 완료 - areaCode={}", event.areaCode());
-        } catch (DataIntegrityViolationException e) {
-            log.warn("[AiReportConsumer] 중복 메시지 무시 - areaCode={}, populationTime={}", event.areaCode(), event.populationTime());
+        if (inserted == 0) {
+            log.warn("[AiReportConsumer] 중복 메시지 무시 - areaCode={}, populationTime={}",
+                    event.areaCode(), event.populationTime());
+            return;
         }
+
+        cacheToRedis(event);
+        log.info("[AiReportConsumer] AI 분석 결과 저장 완료 - areaCode={}", event.areaCode());
     }
 
     private void cacheToRedis(AiReportEvent event) {
