@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 
@@ -25,7 +24,6 @@ public class AiReportEventConsumer {
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
 
-    @Transactional
     @RabbitListener(queues = RabbitMqConfig.AI_REPORT_QUEUE_NAME)
     public void handleAiReport(AiReportEvent event) {
         int inserted = aiReportRepository.insertIfAbsent(
