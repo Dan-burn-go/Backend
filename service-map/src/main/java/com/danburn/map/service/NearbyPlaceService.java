@@ -48,10 +48,12 @@ public class NearbyPlaceService {
 
         List<NearbyPlaceResponse> result = fetchFromKakao(categoryCode, longitude, latitude);
 
-        try {
-            stringRedisTemplate.opsForValue().set(cacheKey, objectMapper.writeValueAsString(result), CACHE_TTL);
-        } catch (Exception e) {
-            log.warn("Redis 캐시 쓰기 실패 - key: {}", cacheKey, e);
+        if (!result.isEmpty()) {
+            try {
+                stringRedisTemplate.opsForValue().set(cacheKey, objectMapper.writeValueAsString(result), CACHE_TTL);
+            } catch (Exception e) {
+                log.warn("Redis 캐시 쓰기 실패 - key: {}", cacheKey, e);
+            }
         }
 
         return result;

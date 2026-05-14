@@ -148,6 +148,21 @@ class NearbyPlaceServiceTest {
             assertThat(result).hasSize(1);
             assertThat(result.get(0).placeName()).isEqualTo("맛집");
         }
+
+        @Test
+        @DisplayName("카카오 API 빈 배열 반환 - Redis에 저장하지 않음")
+        void emptyResult_doesNotCacheToRedis() {
+            given(valueOperations.get("map:nearby:POI009:FD6")).willReturn(null);
+            given(kakaoLocalApiClient.fetchNearbyPlaces("FD6", 126.9769, 37.5759))
+                    .willReturn(new KakaoLocalApiResponse(
+                            new KakaoLocalApiResponse.Meta(0, true), List.of()
+                    ));
+
+            List<NearbyPlaceResponse> result = nearbyPlaceService.getNearbyPlaces("POI009", "FD6", 126.9769, 37.5759);
+
+            assertThat(result).isEmpty();
+            then(valueOperations).should(never()).set(anyString(), anyString(), any(Duration.class));
+        }
     }
 
     @Nested
