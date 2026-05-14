@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <include resource="logback-common.xml"/>
+
+    <!-- WARN(코드 요약)이 ERROR(메시지)와 중복이라 ERROR 만 남김 -->
+    <logger name="org.hibernate.engine.jdbc.spi.SqlExceptionHelper" level="ERROR"/>
 </configuration>

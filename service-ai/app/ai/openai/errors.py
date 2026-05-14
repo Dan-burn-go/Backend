@@ -80,10 +80,10 @@ def _classify_429(response: httpx.Response) -> Exception:
         body_text,
     )
 
-    if error_code == "queue_exceeded" or not should_retry:
+    if error_code == "queue_exceeded":
         return NonRetriableError(
-            error_code=error_code or "non_retriable_429",
-            message=body_text or "429 Too Many Requests (non-retriable)",
+            error_code=error_code,
+            message=body_text or "429 Too Many Requests (queue exceeded)",
         )
 
     if error_code == "token_quota_exceeded":

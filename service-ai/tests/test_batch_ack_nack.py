@@ -109,7 +109,11 @@ async def test_non_retriable_error_nacks_to_dlq():
 
 
 @pytest.mark.asyncio
-async def test_retriable_error_rebuffers_without_ack_or_nack():
+async def test_retriable_error_nacks_to_dlq():
+    """RetriableError 도 즉시 DLQ → DLQWorker 가 다음 사이클에 메인 큐로 재발행.
+
+    in-process sleep+rebuffer 는 channel/heartbeat 단절을 일으켜 폐기됨.
+    """
     analyzer = FakeAnalyzer("retriable_then_ok")
     publisher = FakePublisher()
     bp = BatchProcessor(analyzer, publisher)  # type: ignore[arg-type]
@@ -119,46 +123,31 @@ async def test_retriable_error_rebuffers_without_ack_or_nack():
     items = [(_event("A"), msg_a), (_event("B"), msg_b)]
     await bp._process(list(items))
 
-    # 첫 처리 → re-buffer → ack/nack 둘 다 없음
-    assert not msg_a.acked and not msg_a.nacked
-    assert not msg_b.acked and not msg_b.nacked
-    # 버퍼 재삽입 확인
+    for msg in (msg_a, msg_b):
+        assert msg.nacked is True
+        assert msg.nack_requeue is False
+        assert msg.acked is False
+    # 버퍼는 비어 있어야 함 (rebuffer 제거)
     async with bp._lock:
-        assert len(bp._buffer) == 2
+        assert bp._buffer == []
 
 
 @pytest.mark.asyncio
-async def test_unknown_exception_retries_then_dlqs(monkeypatch):
+async def test_unknown_exception_nacks_to_dlq():
     analyzer = FakeAnalyzer("unknown_always")
     publisher = FakePublisher()
     bp = BatchProcessor(analyzer, publisher)  # type: ignore[arg-type]
 
-    # 재시도 대기 시간 0 으로 단축
-    async def fast_sleep(_):
-        return None
-
-    monkeypatch.setattr("app.rabbitmq.batch.asyncio.sleep", fast_sleep)
-
     msg_a = FakeMessage(1)
     items = [(_event("A"), msg_a)]
 
-    # 1차 _process: 첫 실패 → rebuffer
     await bp._process(list(items))
-    assert not msg_a.acked and not msg_a.nacked
-    async with bp._lock:
-        assert len(bp._buffer) == 1
-        bp._buffer.clear()
 
-    # 2차 _process: 두 번째 실패 → rebuffer
-    await bp._process(list(items))
-    assert not msg_a.acked and not msg_a.nacked
-    async with bp._lock:
-        bp._buffer.clear()
-
-    # 3차 _process: MAX_BATCH_RETRY=2 초과 → DLQ
-    await bp._process(list(items))
     assert msg_a.nacked is True
     assert msg_a.nack_requeue is False
+    assert msg_a.acked is False
+    async with bp._lock:
+        assert bp._buffer == []
 
 
 @pytest.mark.asyncio

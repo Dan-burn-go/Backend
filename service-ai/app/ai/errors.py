@@ -1,11 +1,10 @@
 """AI 호출 실패 분류용 예외 계층.
 
-- Cerebras 429 응답: body.error.code + x-should-retry 헤더로 재시도 판정
+- Cerebras 429 응답: body.error.code 기준으로 재시도 판정
 - NonRetriableError: 재시도 금지 → 즉시 DLQ 라우팅
-  · queue_exceeded
-  · x-should-retry: false
+  · queue_exceeded (Free tier 큐 영구 포화)
 - RetriableError: retry_after 초 후 재시도 가능
-  · token_quota_exceeded
+  · token_quota_exceeded, 그 외 알 수 없는 429
 """
 
 from __future__ import annotations
@@ -25,7 +24,6 @@ class NonRetriableError(AIServiceError):
 
     대표 케이스
     - Cerebras queue_exceeded: Free tier 큐 포화 (재시도 시 즉시 재실패)
-    - x-should-retry: false 헤더: 서버가 명시적 재시도 금지
     """
 
 
