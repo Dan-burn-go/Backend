@@ -1,9 +1,16 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "50m"
+    max-file: "3"
+
 services:
 
   # ── Infrastructure ──────────────────────────────────────────────────────────
 
   mysql:
     image: mysql:8.0
+    logging: *default-logging
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
       CONGESTION_DB_USERNAME: ${CONGESTION_DB_USERNAME:-}
@@ -25,6 +32,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    logging: *default-logging
     command: >
       sh -c "if [ -n \"$REDIS_PASSWORD\" ]; then
         redis-server --requirepass \"$REDIS_PASSWORD\";
@@ -45,6 +53,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
+    logging: *default-logging
     hostname: rabbitmq
     ports:
       - "5672:5672"
@@ -66,6 +75,7 @@ services:
 
   observability:
     image: grafana/otel-lgtm:latest
+    logging: *default-logging
     ports:
       - "3000:3000"   # Grafana UI
       - "4317:4317"   # OTel Collector gRPC
@@ -89,6 +99,7 @@ services:
     build:
       context: .
       dockerfile: service-congestion/Dockerfile
+    logging: *default-logging
     ports:
       - "8082:8082"
     environment:
@@ -124,6 +135,7 @@ services:
     build:
       context: .
       dockerfile: service-map/Dockerfile
+    logging: *default-logging
     ports:
       - "8083:8083"
     environment:
@@ -148,6 +160,7 @@ services:
     build:
       context: .
       dockerfile: service-mobility/Dockerfile
+    logging: *default-logging
     ports:
       - "8084:8084"
     environment:
@@ -167,6 +180,7 @@ services:
     build:
       context: ./service-ai
       dockerfile: Dockerfile
+    logging: *default-logging
     ports:
       - "8085:8085"
     environment:
@@ -188,6 +202,7 @@ services:
     build:
       context: .
       dockerfile: service-gateway/Dockerfile
+    logging: *default-logging
     ports:
       - "8080:8080"
     environment:
