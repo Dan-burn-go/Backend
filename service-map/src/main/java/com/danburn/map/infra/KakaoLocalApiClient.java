@@ -33,7 +33,8 @@ public class KakaoLocalApiClient {
         .queryParam("x", longitude)
         .queryParam("y", latitude)
         .queryParam("radius", 1000)
-        .queryParam("page", 10)
+        .queryParam("page", 1)
+        .queryParam("size", 15)
         .build())
       .retrieve()
       .body(KakaoLocalApiResponse.class);
