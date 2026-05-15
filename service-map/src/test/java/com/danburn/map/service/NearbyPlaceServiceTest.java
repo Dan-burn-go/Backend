@@ -1,5 +1,6 @@
 package com.danburn.map.service;
 
+import com.danburn.common.exception.GlobalException;
 import com.danburn.map.dto.response.KakaoLocalApiResponse;
 import com.danburn.map.dto.response.NearbyPlaceResponse;
 import com.danburn.map.infra.KakaoLocalApiClient;
@@ -18,8 +19,10 @@ import org.springframework.data.redis.core.ValueOperations;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
 
@@ -38,12 +41,18 @@ class NearbyPlaceServiceTest {
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
 
+    @Mock
+    private LocationCodeMapper locationCodeMapper;
+
     @InjectMocks
     private NearbyPlaceService nearbyPlaceService;
+
+    private static final LocationCodeMapper.Coordinate COORDINATE = new LocationCodeMapper.Coordinate(37.5759, 126.9769);
 
     @BeforeEach
     void setUp() {
         given(stringRedisTemplate.opsForValue()).willReturn(valueOperations);
+        given(locationCodeMapper.getCoordinateByAreaCode("POI009")).willReturn(Optional.of(COORDINATE));
     }
 
     private KakaoLocalApiResponse createKakaoResponse(String placeName) {
@@ -67,7 +76,7 @@ class NearbyPlaceServiceTest {
             given(kakaoLocalApiClient.fetchNearbyPlaces("FD6", 126.9769, 37.5759))
                     .willReturn(createKakaoResponse("맛집"));
 
-            List<NearbyPlaceResponse> result = nearbyPlaceService.getNearbyPlaces("POI009", "FD6", 126.9769, 37.5759);
+            List<NearbyPlaceResponse> result = nearbyPlaceService.getNearbyPlaces("POI009", "FD6");
 
             assertThat(result).hasSize(1);
             assertThat(result.get(0).placeName()).isEqualTo("맛집");
@@ -81,10 +90,20 @@ class NearbyPlaceServiceTest {
             given(kakaoLocalApiClient.fetchNearbyPlaces(anyString(), eq(126.9769), eq(37.5759)))
                     .willReturn(createKakaoResponse("장소"));
 
-            List<NearbyPlaceResponse> result = nearbyPlaceService.getNearbyPlaces("POI009", "ALL", 126.9769, 37.5759);
+            List<NearbyPlaceResponse> result = nearbyPlaceService.getNearbyPlaces("POI009", "ALL");
 
             assertThat(result).hasSize(4);
             then(kakaoLocalApiClient).should(times(4)).fetchNearbyPlaces(anyString(), anyDouble(), anyDouble());
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 areaCode - GlobalException 404 발생")
+        void invalidAreaCode_throwsGlobalException() {
+            given(locationCodeMapper.getCoordinateByAreaCode("INVALID")).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> nearbyPlaceService.getNearbyPlaces("INVALID", "FD6"))
+                    .isInstanceOf(GlobalException.class)
+                    .hasMessageContaining("INVALID");
         }
     }
 
@@ -101,7 +120,7 @@ class NearbyPlaceServiceTest {
             String cachedJson = objectMapper.writeValueAsString(cached);
             given(valueOperations.get("map:nearby:POI009:FD6")).willReturn(cachedJson);
 
-            List<NearbyPlaceResponse> result = nearbyPlaceService.getNearbyPlaces("POI009", "FD6", 126.9769, 37.5759);
+            List<NearbyPlaceResponse> result = nearbyPlaceService.getNearbyPlaces("POI009", "FD6");
 
             assertThat(result).hasSize(1);
             assertThat(result.get(0).placeName()).isEqualTo("맛집");
@@ -115,7 +134,7 @@ class NearbyPlaceServiceTest {
             given(kakaoLocalApiClient.fetchNearbyPlaces("FD6", 126.9769, 37.5759))
                     .willReturn(createKakaoResponse("맛집"));
 
-            nearbyPlaceService.getNearbyPlaces("POI009", "FD6", 126.9769, 37.5759);
+            nearbyPlaceService.getNearbyPlaces("POI009", "FD6");
 
             then(valueOperations).should().set(eq("map:nearby:POI009:FD6"), anyString(), eq(Duration.ofHours(1)));
         }
@@ -128,7 +147,7 @@ class NearbyPlaceServiceTest {
             given(kakaoLocalApiClient.fetchNearbyPlaces("FD6", 126.9769, 37.5759))
                     .willReturn(createKakaoResponse("맛집"));
 
-            List<NearbyPlaceResponse> result = nearbyPlaceService.getNearbyPlaces("POI009", "FD6", 126.9769, 37.5759);
+            List<NearbyPlaceResponse> result = nearbyPlaceService.getNearbyPlaces("POI009", "FD6");
 
             assertThat(result).hasSize(1);
             assertThat(result.get(0).placeName()).isEqualTo("맛집");
@@ -143,7 +162,7 @@ class NearbyPlaceServiceTest {
             willThrow(new RuntimeException("Redis 쓰기 실패"))
                     .given(valueOperations).set(anyString(), anyString(), any(Duration.class));
 
-            List<NearbyPlaceResponse> result = nearbyPlaceService.getNearbyPlaces("POI009", "FD6", 126.9769, 37.5759);
+            List<NearbyPlaceResponse> result = nearbyPlaceService.getNearbyPlaces("POI009", "FD6");
 
             assertThat(result).hasSize(1);
             assertThat(result.get(0).placeName()).isEqualTo("맛집");
@@ -158,7 +177,7 @@ class NearbyPlaceServiceTest {
                             new KakaoLocalApiResponse.Meta(0, true), List.of()
                     ));
 
-            List<NearbyPlaceResponse> result = nearbyPlaceService.getNearbyPlaces("POI009", "FD6", 126.9769, 37.5759);
+            List<NearbyPlaceResponse> result = nearbyPlaceService.getNearbyPlaces("POI009", "FD6");
 
             assertThat(result).isEmpty();
             then(valueOperations).should(never()).set(anyString(), anyString(), any(Duration.class));
@@ -176,7 +195,7 @@ class NearbyPlaceServiceTest {
             given(kakaoLocalApiClient.fetchNearbyPlaces("FD6", 126.9769, 37.5759))
                     .willThrow(new RuntimeException("카카오 API 오류"));
 
-            List<NearbyPlaceResponse> result = nearbyPlaceService.getNearbyPlaces("POI009", "FD6", 126.9769, 37.5759);
+            List<NearbyPlaceResponse> result = nearbyPlaceService.getNearbyPlaces("POI009", "FD6");
 
             assertThat(result).isEmpty();
         }
@@ -188,7 +207,7 @@ class NearbyPlaceServiceTest {
             given(kakaoLocalApiClient.fetchNearbyPlaces("FD6", 126.9769, 37.5759))
                     .willReturn(null);
 
-            List<NearbyPlaceResponse> result = nearbyPlaceService.getNearbyPlaces("POI009", "FD6", 126.9769, 37.5759);
+            List<NearbyPlaceResponse> result = nearbyPlaceService.getNearbyPlaces("POI009", "FD6");
 
             assertThat(result).isEmpty();
         }
@@ -206,7 +225,7 @@ class NearbyPlaceServiceTest {
             given(kakaoLocalApiClient.fetchNearbyPlaces(eq("CT1"), anyDouble(), anyDouble()))
                     .willReturn(createKakaoResponse("문화시설"));
 
-            List<NearbyPlaceResponse> result = nearbyPlaceService.getNearbyPlaces("POI009", "ALL", 126.9769, 37.5759);
+            List<NearbyPlaceResponse> result = nearbyPlaceService.getNearbyPlaces("POI009", "ALL");
 
             assertThat(result).hasSize(3);
         }

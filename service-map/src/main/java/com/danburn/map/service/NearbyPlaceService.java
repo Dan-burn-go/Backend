@@ -1,5 +1,6 @@
 package com.danburn.map.service;
 
+import com.danburn.common.exception.GlobalException;
 import com.danburn.map.dto.response.KakaoLocalApiResponse;
 import com.danburn.map.dto.response.NearbyPlaceResponse;
 import com.danburn.map.infra.KakaoLocalApiClient;
@@ -24,8 +25,15 @@ public class NearbyPlaceService {
     private final KakaoLocalApiClient kakaoLocalApiClient;
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
+    private final LocationCodeMapper locationCodeMapper;
 
-    public List<NearbyPlaceResponse> getNearbyPlaces(String areaCode, String categoryCode, double longitude, double latitude) {
+    public List<NearbyPlaceResponse> getNearbyPlaces(String areaCode, String categoryCode) {
+        LocationCodeMapper.Coordinate coordinate = locationCodeMapper.getCoordinateByAreaCode(areaCode)
+                .orElseThrow(() -> new GlobalException(404, "존재하지 않는 지역 코드입니다: " + areaCode));
+
+        double longitude = coordinate.longitude();
+        double latitude = coordinate.latitude();
+
         if ("ALL".equals(categoryCode)) {
             return ALL_CATEGORY_CODES.parallelStream()
                     .flatMap(code -> fetchWithCache(areaCode, code, longitude, latitude).stream())
