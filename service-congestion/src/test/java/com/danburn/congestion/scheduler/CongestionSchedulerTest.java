@@ -4,6 +4,7 @@ import com.danburn.congestion.dto.CongestionRedisDto;
 import com.danburn.congestion.dto.response.CongestionApiResponse;
 import com.danburn.congestion.event.CongestionEventPublisher;
 import com.danburn.congestion.infra.SeoulApiClient;
+import com.danburn.congestion.service.AnomalyDetector;
 import com.danburn.congestion.service.CongestionService;
 import com.danburn.congestion.service.CongestionStateTracker;
 import org.junit.jupiter.api.DisplayName;
@@ -32,6 +33,9 @@ class CongestionSchedulerTest {
 
     @Mock
     private CongestionStateTracker stateTracker;
+
+    @Mock
+    private AnomalyDetector anomalyDetector;
 
     @Mock
     private CongestionEventPublisher eventPublisher;

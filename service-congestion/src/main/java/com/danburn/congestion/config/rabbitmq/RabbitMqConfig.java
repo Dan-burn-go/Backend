@@ -16,6 +16,8 @@ public class RabbitMqConfig {
     public static final String EXCHANGE_NAME = "congestion.events";
     public static final String BUSY_ROUTING_KEY = "congestion.busy";
     public static final String BUSY_QUEUE_NAME = "ai.congestion.analysis";
+    public static final String ANOMALY_ROUTING_KEY = "congestion.busy.anomaly";
+    public static final String ANOMALY_QUEUE_NAME = "ai.congestion.anomaly";
     public static final String AI_REPORT_ROUTING_KEY = "ai.report";
     public static final String AI_REPORT_QUEUE_NAME = "congestion.ai.report";
 
@@ -40,6 +42,21 @@ public class RabbitMqConfig {
         return BindingBuilder.bind(congestionBusyQueue)
                 .to(congestionExchange)
                 .with(BUSY_ROUTING_KEY);
+    }
+
+    @Bean
+    public Queue congestionAnomalyQueue() {
+        return QueueBuilder.durable(ANOMALY_QUEUE_NAME)
+                .withArgument("x-dead-letter-exchange", BUSY_QUEUE_DLX)
+                .withArgument("x-dead-letter-routing-key", BUSY_QUEUE_DLX_ROUTING_KEY)
+                .build();
+    }
+
+    @Bean
+    public Binding congestionAnomalyBinding(Queue congestionAnomalyQueue, TopicExchange congestionExchange) {
+        return BindingBuilder.bind(congestionAnomalyQueue)
+                .to(congestionExchange)
+                .with(ANOMALY_ROUTING_KEY);
     }
 
     @Bean

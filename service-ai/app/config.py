@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     # ── RabbitMQ ──
     rabbitmq_url: str  # amqp://{user}:{pass}@{host}:{port}/
     rabbitmq_queue: str = "ai.congestion.analysis"
+    rabbitmq_anomaly_queue: str = "ai.congestion.anomaly"
 
     # ── RabbitMQ DLX / DLQ ──
     # - DLX: direct, durable

@@ -18,13 +18,19 @@ MAX_RECONNECT_DELAY = 30
 class RabbitMQConsumer:
     """RabbitMQ 혼잡도 이벤트 수신 → BatchProcessor 전달.
 
-    - DLX/DLQ 토폴로지 선언
-    - 메인 큐: x-dead-letter-exchange 인자 포함
+    - DLX/DLQ 토폴로지 선언 (공유 DLX/DLQ)
+    - 메인 큐: x-dead-letter-exchange 인자 포함, DLQ routing key 는 settings.rabbitmq_queue 공유
     - ack/nack: BatchProcessor 담당 (여기서는 파싱 실패만 즉시 DLQ)
+    - queue_name 인자로 일반(`ai.congestion.analysis`) / anomaly(`ai.congestion.anomaly`) 분기
     """
 
-    def __init__(self, batch_processor: BatchProcessor) -> None:
+    def __init__(
+        self,
+        batch_processor: BatchProcessor,
+        queue_name: str | None = None,
+    ) -> None:
         self._batch = batch_processor
+        self._queue_name = queue_name or settings.rabbitmq_queue
         self._connection: aio_pika.abc.AbstractRobustConnection | None = None
         self._channel: aio_pika.abc.AbstractChannel | None = None
         self._running = False
@@ -45,8 +51,8 @@ class RabbitMQConsumer:
         """DLX, DLQ, 메인 큐 선언.
 
         - 1) DLX (direct, durable)
-        - 2) DLQ (TTL + max-length) → DLX 에 바인딩
-        - 3) 메인 큐 (x-dead-letter-exchange 인자 포함)
+        - 2) DLQ (TTL + max-length) → DLX 에 바인딩 (공유, routing_key=settings.rabbitmq_queue)
+        - 3) 메인 큐 (x-dead-letter-exchange 인자 포함, dead-letter-routing-key 는 공유 DLQ 키)
         - 기존 메인 큐가 DLX 인자 없이 존재 → PRECONDITION_FAILED 발생
           · 대응: 경고 로그 + passive 재선언 (마이그레이션 안내)
           · 마이그레이션: 관리 UI 에서 큐 삭제 또는 재선언 스크립트 필요
@@ -58,7 +64,7 @@ class RabbitMQConsumer:
             durable=True,
         )
 
-        # 2. DLQ 선언 (TTL + max-length)
+        # 2. DLQ 선언 (TTL + max-length, 모든 메인 큐가 공유)
         dlq = await channel.declare_queue(
             settings.rabbitmq_dlq_name,
             durable=True,
@@ -76,7 +82,7 @@ class RabbitMQConsumer:
         }
         try:
             queue = await channel.declare_queue(
-                settings.rabbitmq_queue,
+                self._queue_name,
                 durable=True,
                 arguments=main_args,
             )
@@ -84,7 +90,7 @@ class RabbitMQConsumer:
             logger.warning(
                 "[Consumer] 메인 큐 '%s' 가 DLX 인자 없이 이미 존재합니다. "
                 "DLQ 라우팅 활성화 → RabbitMQ Management UI 에서 큐 삭제 후 재시작 필요. 원인: %s",
-                settings.rabbitmq_queue,
+                self._queue_name,
                 e,
             )
             # PRECONDITION_FAILED → 채널 닫힘 가능성 → 새 채널 확보
@@ -92,7 +98,7 @@ class RabbitMQConsumer:
                 self._channel = await self._connection.channel()  # type: ignore[union-attr]
                 await self._channel.set_qos(prefetch_count=5)
                 queue = await self._channel.declare_queue(
-                    settings.rabbitmq_queue,
+                    self._queue_name,
                     durable=True,
                 )
             except Exception:
@@ -112,7 +118,7 @@ class RabbitMQConsumer:
 
                 logger.info(
                     "[Consumer] RabbitMQ 연결 완료 - queue=%s, dlq=%s, dlx=%s",
-                    settings.rabbitmq_queue,
+                    self._queue_name,
                     settings.rabbitmq_dlq_name,
                     settings.dlq_dlx_name,
                 )
@@ -136,6 +142,8 @@ class RabbitMQConsumer:
                 congestion_level=body["congestionLevel"],
                 max_people_count=body["maxPeopleCount"],
                 population_time=body["populationTime"],
+                avg_max_people=body.get("avgMaxPeople"),
+                ratio=body.get("ratio"),
             )
         except Exception as e:
             logger.error("[Consumer] 메시지 파싱 실패, DLQ 라우팅 - %s", e)

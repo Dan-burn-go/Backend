@@ -21,15 +21,29 @@ class BatchProcessor:
     - 버퍼 항목: (event, IncomingMessage) 쌍
     - 처리 결과에 따라 ack / nack(requeue=False) 라우팅
     - nack(requeue=False): DLX 경유 DLQ 이동 (재시도는 DLQWorker 담당)
+    - mode: "normal" 또는 "anomaly". analyzer 에 전달되어 시스템 프롬프트/tool_choice 분기.
+    - max_size / window_seconds 인자 미지정 시 settings 기본값 사용.
+      anomaly 큐는 max_size=1 로 즉시 처리.
     """
 
     def __init__(
         self,
         analyzer: AIAnalyzer,
         publisher: RabbitMQPublisher,
+        *,
+        mode: str = "normal",
+        max_size: int | None = None,
+        window_seconds: float | None = None,
+        name: str | None = None,
     ) -> None:
         self._analyzer = analyzer
         self._publisher = publisher
+        self._mode = mode
+        self._max_size = max_size if max_size is not None else settings.batch_max_size
+        self._window_seconds = (
+            window_seconds if window_seconds is not None else settings.batch_window_seconds
+        )
+        self._name = name or mode
         self._buffer: list[BatchItem] = []
         self._lock = asyncio.Lock()
         self._timer_task: asyncio.Task | None = None
@@ -39,9 +53,11 @@ class BatchProcessor:
         self._running = True
         self._timer_task = asyncio.create_task(self._timer_loop())
         logger.info(
-            "[BatchProcessor] 시작 (window=%ss, max_size=%d)",
-            settings.batch_window_seconds,
-            settings.batch_max_size,
+            "[BatchProcessor:%s] 시작 (mode=%s, window=%ss, max_size=%d)",
+            self._name,
+            self._mode,
+            self._window_seconds,
+            self._max_size,
         )
 
     async def stop(self) -> None:
@@ -59,7 +75,7 @@ class BatchProcessor:
         items: list[BatchItem] | None = None
         async with self._lock:
             self._buffer.append((event, message))
-            if len(self._buffer) >= settings.batch_max_size:
+            if len(self._buffer) >= self._max_size:
                 items = self._buffer.copy()
                 self._buffer.clear()
         if items is not None:
@@ -67,7 +83,7 @@ class BatchProcessor:
 
     async def _timer_loop(self) -> None:
         while self._running:
-            await asyncio.sleep(settings.batch_window_seconds)
+            await asyncio.sleep(self._window_seconds)
             await self._flush()
 
     async def _flush(self) -> None:
@@ -113,10 +129,10 @@ class BatchProcessor:
         if not items:
             return
         events = [event for event, _ in items]
-        logger.info("[BatchProcessor] 배치 처리 시작 - %d건", len(events))
+        logger.info("[BatchProcessor:%s] 배치 처리 시작 - %d건", self._name, len(events))
 
         try:
-            results = await self._analyzer.analyze(events)
+            results = await self._analyzer.analyze(events, mode=self._mode)
         except NonRetriableError as e:
             await self._dlq_all(items, f"NonRetriableError: {e}")
             return
@@ -136,7 +152,8 @@ class BatchProcessor:
 
         await self._ack_all(items)
         logger.info(
-            "[BatchProcessor] 배치 처리 완료 - 분석=%d건, 입력=%d건",
+            "[BatchProcessor:%s] 배치 처리 완료 - 분석=%d건, 입력=%d건",
+            self._name,
             len(results),
             len(items),
         )

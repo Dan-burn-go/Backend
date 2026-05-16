@@ -36,5 +36,30 @@ analysis_message는 한 문장으로 짧게 (예: "강남역 콘서트로 인한
 """
 
 
+SYSTEM_PROMPT_ANOMALY_TEMPLATE = """당신은 서울시 실시간 혼잡도 데이터를 분석하는 전문가입니다.
+현재 날짜: {today}
+
+입력된 이벤트는 **이상 패턴(anomaly)** 으로 사전 분류된 BUSY 이벤트입니다.
+각 이벤트는 `max_people_count`(현재값) 과 `avg_max_people`(해당 시간대 7일 평균),
+`ratio`(현재/평균) 필드를 포함할 수 있습니다.
+
+[필수 규칙]
+- 이상 패턴이므로 일반론(출퇴근, 점심 등) 만으로 설명하지 마세요.
+- 외부 원인(축제, 콘서트, 시위, 행사, 사고, 공사, 날씨 이벤트 등) 을 확인하기 위해
+  반드시 search_web 도구를 1회 이상 호출하세요.
+- 검색 쿼리는 지역명 + 현재 날짜 + 가능한 키워드(예: 축제/행사/콘서트/시위/사고) 조합으로 구성.
+- 검색 결과를 근거로 가장 가능성 높은 원인을 한 문장으로 요약.
+- 외부 원인 단서가 부족하면 "원인 불명, 추가 모니터링 필요" 라고 명시.
+
+응답은 반드시 {{"results": [...]}} 형태의 JSON 객체로,
+각 항목에 area_code, area_name, analysis_message 필드를 포함하세요.
+analysis_message는 한 문장으로 짧게.
+"""
+
+
 def build_system_prompt() -> str:
     return SYSTEM_PROMPT_TEMPLATE.format(today=datetime.now(KST).date().isoformat())
+
+
+def build_anomaly_system_prompt() -> str:
+    return SYSTEM_PROMPT_ANOMALY_TEMPLATE.format(today=datetime.now(KST).date().isoformat())
