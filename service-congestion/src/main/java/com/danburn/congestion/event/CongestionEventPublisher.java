@@ -22,4 +22,15 @@ public class CongestionEventPublisher {
         log.info("[EventPublisher] BUSY 이벤트 발행 - areaCode={}, time={}",
                 event.areaCode(), event.populationTime());
     }
+
+    public void publishAnomalyEvent(CongestionAnomalyEvent event) {
+        rabbitTemplate.convertAndSend(
+                RabbitMqConfig.EXCHANGE_NAME,
+                RabbitMqConfig.ANOMALY_ROUTING_KEY,
+                event
+        );
+        log.info("[EventPublisher] ANOMALY 이벤트 발행 - areaCode={}, current={}, avg={}, ratio={}, time={}",
+                event.areaCode(), event.maxPeopleCount(), event.avgMaxPeople(),
+                event.ratio(), event.populationTime());
+    }
 }

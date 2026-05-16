@@ -71,3 +71,5 @@ congestion:
   cleanup:
     cron: ${CONGESTION_CLEANUP_CRON:0 0 3 * * *}
     retention-days: ${CONGESTION_CLEANUP_RETENTION_DAYS:7}
+  anomaly:
+    max-people-ratio: ${CONGESTION_ANOMALY_MAX_PEOPLE_RATIO:1.5}

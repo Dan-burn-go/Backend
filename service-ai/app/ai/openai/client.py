@@ -19,7 +19,7 @@ import httpx
 from app.ai.interface import AIAnalyzer
 from app.ai.mcp.client import MCPClient
 from app.ai.openai.errors import _classify_429
-from app.ai.openai.prompt import build_system_prompt
+from app.ai.openai.prompt import build_anomaly_system_prompt, build_system_prompt
 from app.ai.rate_limiter import RateLimiter, estimate_prompt_tokens
 from app.config import settings
 from app.models.schemas import AnalysisResult, CongestionEvent
@@ -43,8 +43,14 @@ class OpenAIAnalyzer(AIAnalyzer):
         )
         self._mcp_client = mcp_client
 
-    async def analyze(self, events: list[CongestionEvent]) -> list[AnalysisResult]:
-        system_prompt = build_system_prompt()
+    async def analyze(
+        self,
+        events: list[CongestionEvent],
+        *,
+        mode: str = "normal",
+    ) -> list[AnalysisResult]:
+        is_anomaly = mode == "anomaly"
+        system_prompt = build_anomaly_system_prompt() if is_anomaly else build_system_prompt()
         user_content = json.dumps(
             [e.model_dump() for e in events], ensure_ascii=False
         )
@@ -66,8 +72,11 @@ class OpenAIAnalyzer(AIAnalyzer):
                 self._rate_limiter.tpd_used_ratio(),
             )
 
+        # anomaly 모드 + tools 사용 가능 → tool_choice='required' 로 강제 호출
+        tool_choice = "required" if (is_anomaly and not tools_disabled and tools) else None
+
         # hop 1
-        message = await self._call_llm(messages, tools)
+        message = await self._call_llm(messages, tools, tool_choice=tool_choice)
         tool_calls = message.get("tool_calls") or []
 
         # tool calls 있으면 실행 후 hop 2 (max_hops=1 고정)
@@ -124,6 +133,8 @@ class OpenAIAnalyzer(AIAnalyzer):
         self,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None,
+        *,
+        tool_choice: str | None = None,
     ) -> dict[str, Any]:
         """LLM 1회 호출. RateLimiter acquire/record + 429 분류.
 
@@ -139,6 +150,8 @@ class OpenAIAnalyzer(AIAnalyzer):
             }
             if tools:
                 body["tools"] = tools
+                if tool_choice is not None:
+                    body["tool_choice"] = tool_choice
 
             response = await self._client.post("/chat/completions", json=body)
 
