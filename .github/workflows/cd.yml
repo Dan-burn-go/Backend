@@ -8,6 +8,7 @@ jobs:
   # ── Docker 이미지 병렬 빌드 & 푸시 (2개씩, GitHub-hosted) ──────────────────
   build-and-push:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       max-parallel: 2
       matrix:
@@ -56,6 +57,7 @@ jobs:
   deploy:
     runs-on: self-hosted
     needs: build-and-push
+    timeout-minutes: 20
 
     steps:
       - name: Pull latest code
@@ -80,9 +82,9 @@ jobs:
           # 7일 이상 안 쓴 이미지·빌드 캐시 정리 (운영 이미지는 필터로 제외)
           sudo docker image prune -af --filter "until=168h" || true
           sudo docker builder prune -af --filter "until=168h" || true
-          # 7일 이상 된 컨테이너 로그 truncate
-          sudo find /var/lib/docker/containers -name "*.log" -type f -mtime +7 \
-            -exec truncate -s 0 {} \; 2>/dev/null || true
+          # 컨테이너 로그 누적은 docker-compose.yml x-logging(max-size=50m,max-file=3)
+          # 가 차단한다. find -exec truncate 는 실행중 컨테이너 log fd 와 충돌해
+          # 후속 docker compose 단계가 hang 되는 사례가 관측되어 제거됨.
           df -h /
 
       - name: Pull and restart containers
