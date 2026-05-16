@@ -1,10 +1,13 @@
 package com.danburn.congestion.scheduler;
 
+import com.danburn.congestion.domain.CongestionLevel;
 import com.danburn.congestion.dto.CongestionRedisDto;
 import com.danburn.congestion.dto.response.CongestionApiResponse;
+import com.danburn.congestion.event.CongestionAnomalyEvent;
 import com.danburn.congestion.event.CongestionBusyEvent;
 import com.danburn.congestion.event.CongestionEventPublisher;
 import com.danburn.congestion.infra.SeoulApiClient;
+import com.danburn.congestion.service.AnomalyDetector;
 import com.danburn.congestion.service.CongestionService;
 import com.danburn.congestion.service.CongestionStateTracker;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +29,7 @@ public class CongestionScheduler {
     private final SeoulApiClient seoulApiClient;
     private final CongestionService congestionService;
     private final CongestionStateTracker stateTracker;
+    private final AnomalyDetector anomalyDetector;
     private final CongestionEventPublisher eventPublisher;
 
     @Scheduled(
@@ -97,6 +101,32 @@ public class CongestionScheduler {
                 log.warn("[CongestionScheduler] 이벤트 발행 실패 - areaCode={}, reason={}",
                         areaCode, e.getMessage());
             }
+        }
+
+        List<CongestionRedisDto> busyDtos = dtos.stream()
+                .filter(dto -> {
+                    if (dto.congestionLevel() == null) return false;
+                    try {
+                        return CongestionLevel.fromDescription(dto.congestionLevel()) == CongestionLevel.BUSY;
+                    } catch (IllegalArgumentException e) {
+                        return false;
+                    }
+                })
+                .toList();
+
+        for (CongestionAnomalyEvent event : anomalyDetector.detectAnomalies(busyDtos)) {
+            try {
+                eventPublisher.publishAnomalyEvent(event);
+            } catch (Exception e) {
+                log.warn("[CongestionScheduler] anomaly 이벤트 발행 실패 - areaCode={}, reason={}",
+                        event.areaCode(), e.getMessage());
+            }
+        }
+
+        try {
+            anomalyDetector.releaseArmedForNonBusy(dtos);
+        } catch (Exception e) {
+            log.warn("[CongestionScheduler] anomaly armed 정리 실패 - reason={}", e.getMessage());
         }
     }
 }

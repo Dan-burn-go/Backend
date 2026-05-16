@@ -42,7 +42,12 @@ class FakeAnalyzer:
         self.behaviour = behaviour
         self.calls = 0
 
-    async def analyze(self, events: list[CongestionEvent]) -> list[AnalysisResult]:
+    async def analyze(
+        self,
+        events: list[CongestionEvent],
+        *,
+        mode: str = "normal",
+    ) -> list[AnalysisResult]:
         self.calls += 1
         if self.behaviour == "non_retriable":
             raise NonRetriableError(error_code="queue_exceeded", message="full")

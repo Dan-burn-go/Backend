@@ -19,8 +19,19 @@ logger = logging.getLogger(__name__)
 mcp_client = MCPClient()
 analyzer = create_analyzer(mcp_client)
 publisher = RabbitMQPublisher()
-batch_processor = BatchProcessor(analyzer, publisher)
-consumer = RabbitMQConsumer(batch_processor)
+batch_processor = BatchProcessor(analyzer, publisher, name="normal")
+anomaly_batch_processor = BatchProcessor(
+    analyzer,
+    publisher,
+    mode="anomaly",
+    max_size=1,
+    name="anomaly",
+)
+consumer = RabbitMQConsumer(batch_processor, queue_name=settings.rabbitmq_queue)
+anomaly_consumer = RabbitMQConsumer(
+    anomaly_batch_processor,
+    queue_name=settings.rabbitmq_anomaly_queue,
+)
 dlq_worker = DLQWorker()
 
 
@@ -31,7 +42,9 @@ async def lifespan(app: FastAPI):
     await mcp_client.start()
     await publisher.connect()
     await batch_processor.start()
+    await anomaly_batch_processor.start()
     await consumer.start()
+    await anomaly_consumer.start()
     await dlq_worker.start()
     logger.info("[AI Service] 시작 완료")
 
@@ -39,7 +52,9 @@ async def lifespan(app: FastAPI):
 
     # shutdown
     await dlq_worker.stop()
+    await anomaly_consumer.stop()
     await consumer.stop()
+    await anomaly_batch_processor.stop()
     await batch_processor.stop()
     await analyzer.close()
     await publisher.close()
