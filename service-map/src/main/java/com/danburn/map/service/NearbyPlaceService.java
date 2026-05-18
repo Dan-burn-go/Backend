@@ -21,6 +21,7 @@ public class NearbyPlaceService {
 
     private static final List<String> ALL_CATEGORY_CODES = List.of("FD6", "CE7", "AT4", "CT1");
     private static final Duration CACHE_TTL = Duration.ofHours(1);
+    private static final TypeReference<List<NearbyPlaceResponse>> NEARBY_PLACE_LIST_TYPE = new TypeReference<>() {};
 
     private final KakaoLocalApiClient kakaoLocalApiClient;
     private final StringRedisTemplate stringRedisTemplate;
@@ -48,7 +49,7 @@ public class NearbyPlaceService {
         try {
             String cached = stringRedisTemplate.opsForValue().get(cacheKey);
             if (cached != null) {
-                return objectMapper.readValue(cached, new TypeReference<>() {});
+                return objectMapper.readValue(cached, NEARBY_PLACE_LIST_TYPE);
             }
         } catch (Exception e) {
             log.warn("Redis 캐시 읽기 실패 - key: {}", cacheKey, e);
