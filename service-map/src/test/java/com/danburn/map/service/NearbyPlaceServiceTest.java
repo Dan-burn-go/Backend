@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class NearbyPlaceServiceTest {
@@ -51,8 +52,8 @@ class NearbyPlaceServiceTest {
 
     @BeforeEach
     void setUp() {
-        given(stringRedisTemplate.opsForValue()).willReturn(valueOperations);
-        given(locationCodeMapper.getCoordinateByAreaCode("POI009")).willReturn(Optional.of(COORDINATE));
+        lenient().when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
+        lenient().when(locationCodeMapper.getCoordinateByAreaCode("POI009")).thenReturn(Optional.of(COORDINATE));
     }
 
     private KakaoLocalApiResponse createKakaoResponse(String placeName) {
