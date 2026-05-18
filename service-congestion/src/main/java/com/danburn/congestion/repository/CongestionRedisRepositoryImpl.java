@@ -24,7 +24,7 @@ public class CongestionRedisRepositoryImpl implements CongestionRedisRepository 
 
     private final RedisTemplate<String, CongestionRedisDto> congestionRedisTemplate;
 
-    private static final String KEY_PREFIX = "congestion:";
+    private static final String KEY_PREFIX = "congestion:dto:";
     private static final long TTL_MINUTES = 15;
 
     @Override
