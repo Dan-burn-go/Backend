@@ -135,6 +135,31 @@ jobs:
           echo "DB users ensured. Restarting services..."
           sudo docker restart backend-service-congestion-1 backend-service-map-1 || true
 
+      - name: Wait for service-congestion to be healthy
+        run: |
+          # service-congestion 컨테이너의 네트워크 namespace 공유로 localhost:8082 접근.
+          # 런타임 이미지에 curl 없어도 외부 curlimages/curl 컨테이너로 폴링한다.
+          echo "Polling /actuator/health (timeout 5min)..."
+          success=false
+          for i in $(seq 1 60); do
+            if sudo docker run --rm \
+                 --network container:backend-service-congestion-1 \
+                 curlimages/curl:8.10.1 \
+                 -s --max-time 5 http://localhost:8082/actuator/health 2>/dev/null \
+                 | grep -q '"status":"UP"'; then
+              echo "service-congestion is UP after $((i*5))s."
+              success=true
+              break
+            fi
+            sleep 5
+          done
+          if [ "$success" = false ]; then
+            echo "::error::service-congestion did not become healthy within 5 minutes"
+            echo "==== last 100 lines of service-congestion logs ===="
+            sudo docker logs --tail 100 backend-service-congestion-1 || true
+            exit 1
+          fi
+
       - name: Start Portainer (if not running)
         run: |
           cd ~/Backend
