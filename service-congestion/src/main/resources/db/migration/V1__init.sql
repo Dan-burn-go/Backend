@@ -1,0 +1,2 @@
+-- Flyway baseline marker. baseline-on-migrate=true 로 prod 기존 스키마는 이 버전으로 표시되고 실행되지 않는다.
+-- 이후 모든 스키마 변경은 V2__... 부터 순차 추가한다.
