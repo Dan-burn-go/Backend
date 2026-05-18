@@ -187,7 +187,11 @@ async def test_soft_limit_disables_tools(analyzer, monkeypatch):
 async def test_structured_log_tool_called_true(analyzer, caplog):
     a, mcp = analyzer
     mcp.call_tool.return_value = json.dumps({
-        "results": [{"title": "잠실 콘서트", "date": "2026-05-05"}]
+        "results": [{
+            "title": "잠실 콘서트",
+            "date": "2026-05-05",
+            "body": "2026년 5월 5일 잠실실내체육관에서 콘서트 개최 예정",
+        }]
     })
     a._client.post.side_effect = [
         _httpx_response(_llm_payload(content=None, tool_calls=[{
@@ -212,7 +216,11 @@ async def test_structured_log_tool_called_true(analyzer, caplog):
     payload = json.loads(log.getMessage().split("[Analysis] ", 1)[1])
     assert payload["tool_called"] is True
     assert payload["tool_queries"] == ["잠실 콘서트"]
-    assert payload["tool_results"] == [{"title": "잠실 콘서트", "date": "2026-05-05"}]
+    assert payload["tool_results"] == [{
+        "title": "잠실 콘서트",
+        "date": "2026-05-05",
+        "body": "2026년 5월 5일 잠실실내체육관에서 콘서트 개최 예정",
+    }]
 
 
 async def test_structured_log_tool_called_false(analyzer, caplog):

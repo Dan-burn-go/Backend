@@ -115,6 +115,7 @@ class OpenAIAnalyzer(AIAnalyzer):
                         tool_results_flat.append({
                             "title": r.get("title", ""),
                             "date": r.get("date", ""),
+                            "body": r.get("body", ""),
                         })
                 except json.JSONDecodeError:
                     pass
