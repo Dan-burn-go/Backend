@@ -2,7 +2,7 @@
 
 - 같은 프로세스 안에서 in-memory transport로 클라이언트 연결
 - DuckDuckGo News 검색으로 외부 이벤트(축제, 콘서트, 시위 등) 정보 조회
-- 결과는 제목 + 날짜만 (토큰 절약)
+- 결과는 제목 + 기사 발행일 + 본문 snippet (LLM 이 행사 일시 검증 가능)
 """
 
 from __future__ import annotations
@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 mcp_server = FastMCP("ai-search-server")
 
+BODY_SNIPPET_MAX_CHARS = 200
+
 
 @mcp_server.tool()
 async def search_web(query: str) -> dict[str, Any]:
@@ -29,8 +31,10 @@ async def search_web(query: str) -> dict[str, Any]:
         query: 한국어 검색 쿼리 (예: "강남역 5월 행사")
 
     Returns:
-        성공: {"results": [{"title": ..., "date": ...}, ...]}
+        성공: {"results": [{"title": ..., "date": ..., "body": ...}, ...]}
         실패: {"error": "search_timeout" | "search_failed", "results": []}
+
+    date 는 기사 발행일이며 행사일과 다름. body 는 행사 일시·장소 검증용 snippet.
     """
     try:
         raw = await asyncio.wait_for(
@@ -45,10 +49,22 @@ async def search_web(query: str) -> dict[str, Any]:
         return {"error": "search_failed", "results": []}
 
     results = [
-        {"title": r.get("title", ""), "date": r.get("date", "")}
+        {
+            "title": r.get("title", ""),
+            "date": r.get("date", ""),
+            "body": _truncate(r.get("body", "")),
+        }
         for r in (raw or [])[: settings.mcp_search_max_results]
     ]
     return {"results": results}
+
+
+def _truncate(text: str) -> str:
+    if not text:
+        return ""
+    if len(text) <= BODY_SNIPPET_MAX_CHARS:
+        return text
+    return text[:BODY_SNIPPET_MAX_CHARS].rstrip() + "…"
 
 
 def _ddg_news(query: str) -> list[dict[str, Any]]:
