@@ -24,9 +24,21 @@ spring:
         - classpath:data.sql
         - classpath:alternative_locations_data.sql
 
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: 6379
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      timeout: 500ms
+      connect-timeout: 500ms
+
 congestion:
   service:
     url: ${CONGESTION_SERVICE_URL:http://localhost:8082}
+
+kakao:
+  api:
+    key: ${KAKAO_API_KEY:}
 
 server:
   port: 8083
