@@ -4,9 +4,11 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Column;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,6 +17,13 @@ import lombok.Builder;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(
+        name = "congestion",
+        indexes = {
+                @Index(name = "idx_congestion_area_code_created_at", columnList = "area_code, created_at"),
+                @Index(name = "idx_congestion_created_at", columnList = "created_at")
+        }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Congestion extends BaseEntity {
