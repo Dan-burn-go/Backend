@@ -11,6 +11,10 @@ import java.time.Duration;
 @Component
 public class KakaoLocalApiClient {
 
+  private static final int SEARCH_RADIUS_METERS = 1000;
+  private static final int SEARCH_PAGE = 1;
+  private static final int SEARCH_SIZE = 15;
+
   private final RestClient restClient;
 
   public KakaoLocalApiClient(@Value("${kakao.api.key}") String apiKey) {
@@ -32,9 +36,9 @@ public class KakaoLocalApiClient {
         .queryParam("category_group_code", categoryCode)
         .queryParam("x", longitude)
         .queryParam("y", latitude)
-        .queryParam("radius", 1000)
-        .queryParam("page", 1)
-        .queryParam("size", 15)
+        .queryParam("radius", SEARCH_RADIUS_METERS)
+        .queryParam("page", SEARCH_PAGE)
+        .queryParam("size", SEARCH_SIZE)
         .build())
       .retrieve()
       .body(KakaoLocalApiResponse.class);
