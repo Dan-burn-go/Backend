@@ -29,4 +29,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(400)
                 .body(ApiResponse.error(400, message));
     }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
+        log.error("Unhandled exception", e);
+        return ResponseEntity.status(500)
+                .body(ApiResponse.error(500, "서버 내부 오류가 발생했습니다."));
+    }
 }
