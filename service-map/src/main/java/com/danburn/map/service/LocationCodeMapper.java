@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -21,8 +20,8 @@ public class LocationCodeMapper {
     public record Coordinate(double latitude, double longitude) {}
 
     private final LocationJpaRepository locationJpaRepository;
-    private Map<String, Long> areaCodeToIdMap = new ConcurrentHashMap<>();
-    private Map<String, Coordinate> coordinateMap = new ConcurrentHashMap<>();
+    private Map<String, Long> areaCodeToIdMap;
+    private Map<String, Coordinate> coordinateMap;
 
     @PostConstruct
     public void init() {
