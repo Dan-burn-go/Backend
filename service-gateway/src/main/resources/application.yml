@@ -20,6 +20,18 @@ spring:
           uri: ${CONGESTION_SERVICE_URL:http://localhost:8082}
           predicates:
             - Path=/api/congestion/**
+        # 알림 서비스
+        - id: notification-route
+          uri: ${CONGESTION_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/notifications/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 2
+                redis-rate-limiter.burstCapacity: 5
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
         # 지도 & 대체지 추천 서비스
         - id: map-route
           uri: ${MAP_SERVICE_URL:http://localhost:8083}
