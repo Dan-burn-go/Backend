@@ -5,6 +5,9 @@ import com.danburn.mobility.dto.response.TransitRouteResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -13,40 +16,21 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @Tag(name = "대중교통 경로", description = "대중교통 경로 조회 API")
+@Validated
 @RestController
 @RequestMapping("/api/mobility")
 public class MockOdsayController {
 
     @Operation(
             summary = "대중교통 경로 조회",
-            description = """
-                    출발지/도착지 좌표 기준 대중교통 경로를 조회합니다.
-
-                    **subPath.trafficType별 응답 필드 안내**
-
-                    | 필드 | WALK | BUS | SUBWAY |
-                    |------|------|-----|--------|
-                    | intervalTime | 생략 | 배차 간격(분) | 배차 간격(분) |
-                    | way | 생략 | 생략 | 진행 방면 |
-                    | lane | 생략 | 버스 노선 목록 | 지하철 노선 목록 |
-                    | stations | 생략 | 경유 정류장 목록 | 경유 역 목록 |
-
-                    **lane 필드별 응답 안내**
-
-                    | 필드 | BUS | SUBWAY |
-                    |------|-----|--------|
-                    | busNo | 버스 번호 | 생략 |
-                    | type | 버스 종류 코드 | 생략 |
-                    | name | 생략 | 지하철 노선명 |
-                    | subwayCode | 생략 | 지하철 노선 코드 |
-                    """
+            description = "출발지/도착지 좌표 기준 대중교통 경로를 조회합니다."
     )
     @GetMapping("/route")
     public ApiResponse<TransitRouteResponse> getRoute(
-            @Parameter(description = "출발지 경도", example = "127.1272127") @RequestParam double originLng,
-            @Parameter(description = "출발지 위도", example = "37.3213399") @RequestParam double originLat,
-            @Parameter(description = "도착지 경도", example = "127.02800140627488") @RequestParam double destLng,
-            @Parameter(description = "도착지 위도", example = "37.49808633653005") @RequestParam double destLat
+            @Parameter(description = "출발지 경도", example = "127.1272127") @DecimalMin("-180.0") @DecimalMax("180.0") @RequestParam double originLng,
+            @Parameter(description = "출발지 위도", example = "37.3213399") @DecimalMin("-90.0") @DecimalMax("90.0") @RequestParam double originLat,
+            @Parameter(description = "도착지 경도", example = "127.02800140627488") @DecimalMin("-180.0") @DecimalMax("180.0") @RequestParam double destLng,
+            @Parameter(description = "도착지 위도", example = "37.49808633653005") @DecimalMin("-90.0") @DecimalMax("90.0") @RequestParam double destLat
     ) {
         TransitRouteResponse.Path path1 = new TransitRouteResponse.Path(
                 new TransitRouteResponse.Info(59, 3200, 1, 0, "단국대정문", "신분당선강남역"),
