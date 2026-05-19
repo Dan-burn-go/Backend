@@ -1,21 +1,25 @@
 package com.danburn.mobility.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Schema(description = "대중교통 경로 응답")
 public record TransitRouteResponse(
         @Schema(description = "경로 옵션 목록") List<Path> paths
 ) {
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     @Schema(description = "하나의 경로 옵션")
     public record Path(
             @Schema(description = "경로 전체 요약 정보") Info info,
             @Schema(description = "구간 목록") List<SubPath> subPaths
     ) {}
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     @Schema(description = "경로 전체 요약 정보")
     public record Info(
             @Schema(description = "총 소요 시간 (분)") int totalTime,
@@ -26,6 +30,7 @@ public record TransitRouteResponse(
             @Schema(description = "최종 도착 정류장/역명") String lastEndStation
     ) {}
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @Schema(description = "이동 구간 정보. WALK이면 null 필드 생략됨")
     public record SubPath(
@@ -37,6 +42,7 @@ public record TransitRouteResponse(
             @Schema(description = "경유 정류장/역 이름 목록. WALK이면 생략") List<String> stations
     ) {}
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @Schema(description = "노선 정보. BUS/SUBWAY에 따라 null 필드 생략됨")
     public record Lane(
