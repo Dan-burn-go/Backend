@@ -23,7 +23,7 @@ public class MockOdsayController {
 
     @Operation(
             summary = "대중교통 경로 조회",
-            description = "출발지/도착지 좌표 기준 대중교통 경로를 조회합니다."
+            description = "!! 현재 Mock Data !! 출발지/도착지 좌표 기준 대중교통 경로를 조회합니다."
     )
     @GetMapping("/route")
     public ApiResponse<TransitRouteResponse> getRoute(
