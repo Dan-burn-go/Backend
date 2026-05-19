@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 mcp_server = FastMCP("ai-search-server")
 
 BODY_SNIPPET_MAX_CHARS = 200
+SEARCH_MAX_ATTEMPTS = 2
+SEARCH_RETRY_BACKOFF_SECONDS = 0.5
 
 
 @mcp_server.tool()
@@ -35,18 +37,47 @@ async def search_web(query: str) -> dict[str, Any]:
         실패: {"error": "search_timeout" | "search_failed", "results": []}
 
     date 는 기사 발행일이며 행사일과 다름. body 는 행사 일시·장소 검증용 snippet.
+    DDG의 일시 응답 파싱 오류(DecodeError) 대비로 1회 재시도한다.
+    최종 실패해도 빈 결과로 반환하여 분석은 계속 진행되도록 한다 (WARN).
     """
-    try:
-        raw = await asyncio.wait_for(
-            asyncio.to_thread(_ddg_news, query),
-            timeout=settings.mcp_tool_timeout_seconds,
+    raw: list[dict[str, Any]] | None = None
+    last_error: BaseException | None = None
+    for attempt in range(1, SEARCH_MAX_ATTEMPTS + 1):
+        try:
+            raw = await asyncio.wait_for(
+                asyncio.to_thread(_ddg_news, query),
+                timeout=settings.mcp_tool_timeout_seconds,
+            )
+            last_error = None
+            break
+        except asyncio.TimeoutError as e:
+            last_error = e
+            if attempt < SEARCH_MAX_ATTEMPTS:
+                logger.warning(
+                    "[MCP] search_web 타임아웃, 재시도 - query=%s, attempt=%d",
+                    query, attempt,
+                )
+                await asyncio.sleep(SEARCH_RETRY_BACKOFF_SECONDS)
+        except Exception as e:
+            last_error = e
+            if attempt < SEARCH_MAX_ATTEMPTS:
+                logger.warning(
+                    "[MCP] search_web 일시 실패, 재시도 - query=%s, attempt=%d, error=%s",
+                    query, attempt, type(e).__name__,
+                )
+                await asyncio.sleep(SEARCH_RETRY_BACKOFF_SECONDS)
+
+    if last_error is not None:
+        error_kind = (
+            "search_timeout" if isinstance(last_error, asyncio.TimeoutError)
+            else "search_failed"
         )
-    except asyncio.TimeoutError:
-        logger.warning("[MCP] search_web 타임아웃 - query=%s", query)
-        return {"error": "search_timeout", "results": []}
-    except Exception as e:
-        logger.error("[MCP] search_web 실패 - query=%s, error=%s", query, e)
-        return {"error": "search_failed", "results": []}
+        # 재시도 후 최종 실패 — 분석은 빈 결과로 진행되도록 WARN
+        logger.warning(
+            "[MCP] search_web 최종 실패 - query=%s, kind=%s, error=%s",
+            query, error_kind, type(last_error).__name__,
+        )
+        return {"error": error_kind, "results": []}
 
     results = [
         {
