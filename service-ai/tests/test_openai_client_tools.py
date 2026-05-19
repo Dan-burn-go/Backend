@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import date
 from typing import Any
 from unittest.mock import AsyncMock
 
@@ -17,6 +18,19 @@ import pytest
 
 from app.ai.openai import OpenAIAnalyzer
 from app.models.schemas import CongestionEvent
+
+
+@pytest.fixture(autouse=True)
+def _freeze_today(monkeypatch):
+    """이 모듈의 모든 테스트에서 KST '오늘'을 이벤트의 populationTime(5/5) 으로 고정.
+
+    환각 검증이 tool_results 본문에서 '오늘 날짜 마커'를 찾기 때문에,
+    테스트 시점의 실제 오늘과 무관하게 결정적이도록 함.
+    """
+    monkeypatch.setattr(
+        "app.ai.openai.client._now_kst_date",
+        lambda: date(2026, 5, 5),
+    )
 
 
 def _make_event(
@@ -103,7 +117,11 @@ async def test_no_tool_calls_direct_answer(analyzer):
 async def test_single_tool_call_then_final_answer(analyzer):
     a, mcp = analyzer
     mcp.call_tool.return_value = json.dumps({
-        "results": [{"title": "강남역 콘서트", "date": "2026-05-05"}]
+        "results": [{
+            "title": "강남역 콘서트",
+            "date": "2026-05-05",
+            "body": "5월 5일 오후 8시 강남역 부근 콘서트 개최 예정",
+        }]
     })
     a._client.post.side_effect = [
         _httpx_response(_llm_payload(content=None, tool_calls=[{
@@ -131,7 +149,13 @@ async def test_single_tool_call_then_final_answer(analyzer):
 
 async def test_parallel_tool_calls(analyzer):
     a, mcp = analyzer
-    mcp.call_tool.return_value = json.dumps({"results": []})
+    mcp.call_tool.return_value = json.dumps({
+        "results": [{
+            "title": "오늘 행사",
+            "date": "2026-05-05",
+            "body": "5월 5일 행사 진행",
+        }]
+    })
     a._client.post.side_effect = [
         _httpx_response(_llm_payload(content=None, tool_calls=[
             {
