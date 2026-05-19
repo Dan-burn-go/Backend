@@ -1,0 +1,136 @@
+{
+  "paths": [
+    {
+      "info": { "totalTime": 59, "payment": 3200, "busTransitCount": 1, "subwayTransitCount": 0, "firstStartStation": "단국대정문", "lastEndStation": "신분당선강남역" },
+      "subPaths": [
+        { "trafficType": "WALK", "sectionTime": 4 },
+        {
+          "trafficType": "BUS", "sectionTime": 51, "intervalTime": 25,
+          "lane": [{ "busNo": "1101", "type": 4 }],
+          "stations": ["단국대정문", "대지고등학교.전내교차로", "꽃메마을1단지", "꽃메마을.새에덴교회", "꽃메마을.현대홈타운3단지", "중앙공원", "보정동행정복지센터", "보정동카페거리.죽현마을", "죽전초중고교.대현초교", "농수산물센터", "오리역", "하얀마을.구미도서관", "까치마을.건영빌라.2001아울렛", "미금역.청솔마을.2001아울렛", "청솔주공6단지", "상록마을", "아데나펠리스", "정자역", "두산위브제니스", "느티마을.경남빌라", "롯데백화점.수내역", "분당구청입구.수내교", "신백현초등학교", "백현육교", "판교역.낙생육교.현대백화점", "판교TG", "금토JC", "서울진입", "청계산입구역", "양재IC", "서초IC", "KCC사옥", "신논현역.유화빌딩", "강남역.지오다노", "강남역10번출구", "신분당선강남역"]
+        },
+        { "trafficType": "WALK", "sectionTime": 4 }
+      ]
+    },
+    {
+      "info": { "totalTime": 50, "payment": 2850, "busTransitCount": 1, "subwayTransitCount": 2, "firstStartStation": "단국대.인문관", "lastEndStation": "강남" },
+      "subPaths": [
+        { "trafficType": "WALK", "sectionTime": 2 },
+        {
+          "trafficType": "BUS", "sectionTime": 15, "intervalTime": 5,
+          "lane": [{ "busNo": "24", "type": 3 }],
+          "stations": ["단국대.인문관", "단국대정문", "대지고등학교.전내교차로", "꽃메마을1단지", "꽃메마을.새에덴교회", "꽃메마을.현대홈타운3단지", "중앙공원", "보정동행정복지센터", "보정동카페거리.죽현마을", "죽전역.신세계사우스시티"]
+        },
+        { "trafficType": "WALK", "sectionTime": 1 },
+        {
+          "trafficType": "SUBWAY", "sectionTime": 8, "intervalTime": 8, "way": "정자",
+          "lane": [{ "name": "수도권 수인.분당선", "subwayCode": 116 }],
+          "stations": ["죽전", "오리", "미금", "정자"]
+        },
+        { "trafficType": "WALK", "sectionTime": 3 },
+        {
+          "trafficType": "SUBWAY", "sectionTime": 15, "intervalTime": 8, "way": "강남",
+          "lane": [{ "name": "수도권 신분당선", "subwayCode": 109 }],
+          "stations": ["정자", "판교", "청계산입구", "양재시민의숲", "양재", "강남"]
+        },
+        { "trafficType": "WALK", "sectionTime": 3 }
+      ]
+    },
+    {
+      "info": { "totalTime": 52, "payment": 3350, "busTransitCount": 1, "subwayTransitCount": 1, "firstStartStation": "단국대정문", "lastEndStation": "강남" },
+      "subPaths": [
+        { "trafficType": "WALK", "sectionTime": 4 },
+        {
+          "trafficType": "BUS", "sectionTime": 24, "intervalTime": 11,
+          "lane": [{ "busNo": "39-1", "type": 3 }],
+          "stations": ["단국대정문", "단국대학교.죽전야외음악당.성현마을2단지", "대림아파트후문", "힐스테이트.현대1차", "건영캐스빌정문", "건영캐스빌후문", "새터마을.죽전힐스테이트후문", "새터마을.죽전힐스테이트정문", "새터마을", "죽전교차로", "대지중학교", "죽전1동행정복지센터.홈타운입구", "인현마을", "현암마을", "죽전초중고교.대현초교", "벽산아파트.우리은행(마을)", "오리역.하나로마트(마을)", "미금역.청솔마을.2001아울렛"]
+        },
+        { "trafficType": "WALK", "sectionTime": 4 },
+        {
+          "trafficType": "SUBWAY", "sectionTime": 17, "intervalTime": 8, "way": "강남",
+          "lane": [{ "name": "수도권 신분당선", "subwayCode": 109 }],
+          "stations": ["미금", "정자", "판교", "청계산입구", "양재시민의숲", "양재", "강남"]
+        },
+        { "trafficType": "WALK", "sectionTime": 3 }
+      ]
+    },
+    {
+      "info": { "totalTime": 40, "payment": 4750, "busTransitCount": 1, "subwayTransitCount": 1, "firstStartStation": "단국대정문", "lastEndStation": "강남" },
+      "subPaths": [
+        { "trafficType": "WALK", "sectionTime": 4 },
+        {
+          "trafficType": "BUS", "sectionTime": 16, "intervalTime": 15,
+          "lane": [{ "busNo": "8100", "type": 6 }],
+          "stations": ["단국대정문", "꽃메마을.새에덴교회", "보정동행정복지센터", "오리역", "미금역.청솔마을.2001아울렛", "정자역"]
+        },
+        { "trafficType": "WALK", "sectionTime": 2 },
+        {
+          "trafficType": "SUBWAY", "sectionTime": 15, "intervalTime": 8, "way": "강남",
+          "lane": [{ "name": "수도권 신분당선", "subwayCode": 109 }],
+          "stations": ["정자", "판교", "청계산입구", "양재시민의숲", "양재", "강남"]
+        },
+        { "trafficType": "WALK", "sectionTime": 3 }
+      ]
+    },
+    {
+      "info": { "totalTime": 53, "payment": 2850, "busTransitCount": 1, "subwayTransitCount": 2, "firstStartStation": "단국대학교.죽전야외음악당.성현마을2단지", "lastEndStation": "강남" },
+      "subPaths": [
+        { "trafficType": "WALK", "sectionTime": 7 },
+        {
+          "trafficType": "BUS", "sectionTime": 13, "intervalTime": 15,
+          "lane": [{ "busNo": "40", "type": 3 }],
+          "stations": ["단국대학교.죽전야외음악당.성현마을2단지", "대지고등학교.전내교차로", "꽃메마을1단지", "꽃메마을.새에덴교회", "꽃메마을.현대홈타운3단지", "중앙공원", "보정동행정복지센터", "보정동카페거리.죽현마을", "죽전역.신세계사우스시티"]
+        },
+        { "trafficType": "WALK", "sectionTime": 1 },
+        {
+          "trafficType": "SUBWAY", "sectionTime": 8, "intervalTime": 8, "way": "정자",
+          "lane": [{ "name": "수도권 수인.분당선", "subwayCode": 116 }],
+          "stations": ["죽전", "오리", "미금", "정자"]
+        },
+        { "trafficType": "WALK", "sectionTime": 3 },
+        {
+          "trafficType": "SUBWAY", "sectionTime": 15, "intervalTime": 8, "way": "강남",
+          "lane": [{ "name": "수도권 신분당선", "subwayCode": 109 }],
+          "stations": ["정자", "판교", "청계산입구", "양재시민의숲", "양재", "강남"]
+        },
+        { "trafficType": "WALK", "sectionTime": 3 }
+      ]
+    },
+    {
+      "info": { "totalTime": 55, "payment": 3350, "busTransitCount": 1, "subwayTransitCount": 1, "firstStartStation": "대지고등학교.전내교차로", "lastEndStation": "강남" },
+      "subPaths": [
+        { "trafficType": "WALK", "sectionTime": 7 },
+        {
+          "trafficType": "BUS", "sectionTime": 24, "intervalTime": 11,
+          "lane": [{ "busNo": "25(단국대학교.미금역)", "type": 3 }],
+          "stations": ["대지고등학교.전내교차로", "꽃메마을1단지", "꽃메마을.새에덴교회", "꽃메마을.현대홈타운3단지", "중앙공원", "꽃메마을현대4차4단지", "도담마을5.6.7단지", "한양수자인", "대일초등학교", "대일초교후문", "대지초교.금강플라자", "한신.길훈아파트", "죽전동성2차아파트", "동성1차아파트.죽전패션타운.서울예스병원", "죽전초중고교.대현초교", "벽산아파트.우리은행(마을)", "오리역.하나로마트(마을)", "미금역.청솔마을.2001아울렛"]
+        },
+        { "trafficType": "WALK", "sectionTime": 4 },
+        {
+          "trafficType": "SUBWAY", "sectionTime": 17, "intervalTime": 8, "way": "강남",
+          "lane": [{ "name": "수도권 신분당선", "subwayCode": 109 }],
+          "stations": ["미금", "정자", "판교", "청계산입구", "양재시민의숲", "양재", "강남"]
+        },
+        { "trafficType": "WALK", "sectionTime": 3 }
+      ]
+    },
+    {
+      "info": { "totalTime": 71, "payment": 3450, "busTransitCount": 2, "subwayTransitCount": 0, "firstStartStation": "단국대.치과병원", "lastEndStation": "신분당선강남역" },
+      "subPaths": [
+        { "trafficType": "WALK", "sectionTime": 3 },
+        {
+          "trafficType": "BUS", "sectionTime": 22, "intervalTime": 15,
+          "lane": [{ "busNo": "8100", "type": 6 }],
+          "stations": ["단국대.치과병원", "단국대정문", "꽃메마을.새에덴교회", "보정동행정복지센터", "오리역", "미금역.청솔마을.2001아울렛", "정자역", "분당구청입구.수내교", "판교역.낙생육교.현대백화점"]
+        },
+        { "trafficType": "WALK", "sectionTime": 9 },
+        {
+          "trafficType": "BUS", "sectionTime": 33, "intervalTime": 12,
+          "lane": [{ "busNo": "1151", "type": 4 }],
+          "stations": ["성남역.백현마을2단지", "백현마을1단지", "판교역.낙생육교.현대백화점", "판교TG", "금토JC", "서울진입", "청계산입구역", "양재IC", "서초IC", "KCC사옥", "지하철2호선강남역", "강남역.지오다노", "강남역10번출구", "신분당선강남역"]
+        },
+        { "trafficType": "WALK", "sectionTime": 4 }
+      ]
+    }
+  ]
+}

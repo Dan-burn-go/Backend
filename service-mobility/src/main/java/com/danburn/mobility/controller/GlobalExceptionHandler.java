@@ -1,4 +1,4 @@
-package com.danburn.map.controller;
+package com.danburn.mobility.controller;
 
 import com.danburn.common.exception.GlobalException;
 import com.danburn.common.response.ApiResponse;
