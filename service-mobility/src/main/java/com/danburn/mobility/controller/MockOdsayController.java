@@ -4,6 +4,7 @@ import com.danburn.common.response.ApiResponse;
 import com.danburn.mobility.dto.response.TransitRouteResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import java.io.IOException;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.DecimalMax;
@@ -23,9 +24,11 @@ public class MockOdsayController {
 
     private final TransitRouteResponse mockResponse;
 
-    public MockOdsayController(ObjectMapper objectMapper) throws Exception {
+    public MockOdsayController(ObjectMapper objectMapper) throws IOException {
         var resource = new ClassPathResource("mock-transit-routes.json");
-        this.mockResponse = objectMapper.readValue(resource.getInputStream(), TransitRouteResponse.class);
+        try (var inputStream = resource.getInputStream()) {
+            this.mockResponse = objectMapper.readValue(inputStream, TransitRouteResponse.class);
+        }
     }
 
     @Operation(
