@@ -36,9 +36,9 @@ public class OdsayResponseMapper {
             case 2 -> "BUS";
             default -> "WALK";
         };
-        List<TransitRouteResponse.Lane> lanes = isWalk ? null :
+        List<TransitRouteResponse.Lane> lanes = (isWalk || sub.lane() == null) ? null :
                 sub.lane().stream().map(this::toLane).toList();
-        List<String> stations = isWalk ? null :
+        List<String> stations = (isWalk || sub.passStopList() == null || sub.passStopList().stations() == null) ? null :
                 sub.passStopList().stations().stream()
                         .map(OdsayApiResponse.Station::stationName)
                         .toList();
