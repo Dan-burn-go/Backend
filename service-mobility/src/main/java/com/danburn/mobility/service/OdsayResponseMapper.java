@@ -10,9 +10,11 @@ import java.util.List;
 public class OdsayResponseMapper {
 
     public TransitRouteResponse toResponse(OdsayApiResponse response) {
-        List<TransitRouteResponse.Path> paths = response.result().path().stream()
-                .map(this::toPath)
-                .toList();
+        List<OdsayApiResponse.Path> pathList = response.result().path();
+        List<TransitRouteResponse.Path> paths = (pathList == null) ? List.of() :
+                pathList.stream()
+                        .map(this::toPath)
+                        .toList();
         return new TransitRouteResponse(paths);
     }
 
@@ -23,9 +25,11 @@ public class OdsayResponseMapper {
                 src.busTransitCount(), src.subwayTransitCount(),
                 src.firstStartStation(), src.lastEndStation()
         );
-        List<TransitRouteResponse.SubPath> subPaths = path.subPath().stream()
-                .map(this::toSubPath)
-                .toList();
+        List<OdsayApiResponse.SubPath> subPathList = path.subPath();
+        List<TransitRouteResponse.SubPath> subPaths = (subPathList == null) ? List.of() :
+                subPathList.stream()
+                        .map(this::toSubPath)
+                        .toList();
         return new TransitRouteResponse.Path(info, subPaths);
     }
 
