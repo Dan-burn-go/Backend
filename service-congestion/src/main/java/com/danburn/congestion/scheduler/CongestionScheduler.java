@@ -7,6 +7,7 @@ import com.danburn.congestion.event.CongestionAnomalyEvent;
 import com.danburn.congestion.event.CongestionBusyEvent;
 import com.danburn.congestion.event.CongestionEventPublisher;
 import com.danburn.congestion.infra.SeoulApiClient;
+import com.danburn.congestion.notification.service.SubscriptionService;
 import com.danburn.congestion.service.AnomalyDetector;
 import com.danburn.congestion.service.CongestionService;
 import com.danburn.congestion.service.CongestionStateTracker;
@@ -31,6 +32,7 @@ public class CongestionScheduler {
     private final CongestionStateTracker stateTracker;
     private final AnomalyDetector anomalyDetector;
     private final CongestionEventPublisher eventPublisher;
+    private final SubscriptionService subscriptionService;
 
     @Scheduled(
             fixedRateString = "${congestion.scheduler.interval}",
@@ -99,6 +101,17 @@ public class CongestionScheduler {
                 ));
             } catch (Exception e) {
                 log.warn("[CongestionScheduler] 이벤트 발행 실패 - areaCode={}, reason={}",
+                        areaCode, e.getMessage());
+            }
+        }
+
+        List<String> relaxedAreaCodes = stateTracker.filterAreaCodesForRelaxedNotification(dtos);
+        for (String areaCode : relaxedAreaCodes) {
+            try {
+                CongestionRedisDto dto = dtoMap.get(areaCode);
+                subscriptionService.notifyAndCleanup(areaCode, dto.areaName());
+            } catch (Exception e) {
+                log.warn("[CongestionScheduler] 하강 알림 디스패치 실패 - areaCode={}, reason={}",
                         areaCode, e.getMessage());
             }
         }

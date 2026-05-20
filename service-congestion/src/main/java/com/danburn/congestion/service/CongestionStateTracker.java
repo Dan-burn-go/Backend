@@ -51,6 +51,40 @@ public class CongestionStateTracker {
         return result;
     }
 
+    /**
+     * BUSY → non-BUSY 하강 엣지가 발생한 areaCode 목록을 반환한다.
+     * 알림 발송 대상 식별 용도.
+     */
+    public List<String> filterAreaCodesForRelaxedNotification(List<CongestionRedisDto> dtos) {
+        List<String> nonBusyAreaCodes = dtos.stream()
+                .filter(dto -> {
+                    if (dto.congestionLevel() == null) return false;
+                    try {
+                        return CongestionLevel.fromDescription(dto.congestionLevel()) != CongestionLevel.BUSY;
+                    } catch (IllegalArgumentException e) {
+                        return false;
+                    }
+                })
+                .map(CongestionRedisDto::areaCode)
+                .toList();
+
+        if (nonBusyAreaCodes.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, CongestionLevel> previousLevels = getPreviousLevels(nonBusyAreaCodes);
+
+        List<String> result = new ArrayList<>();
+        for (String areaCode : nonBusyAreaCodes) {
+            CongestionLevel previous = previousLevels.get(areaCode);
+            if (previous == CongestionLevel.BUSY) {
+                log.info("[StateTracker] 하강 엣지 감지 - areaCode={}, BUSY → non-BUSY", areaCode);
+                result.add(areaCode);
+            }
+        }
+        return result;
+    }
+
     private Map<String, CongestionLevel> getPreviousLevels(List<String> areaCodes) {
         Map<String, CongestionLevel> result = new HashMap<>();
         List<String> missingCodes = new ArrayList<>();
