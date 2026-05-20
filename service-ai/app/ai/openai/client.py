@@ -286,13 +286,23 @@ class OpenAIAnalyzer(AIAnalyzer):
         tool_results: list[dict[str, Any]] | None = None,
     ) -> list[AnalysisResult]:
         """LLM 최종 응답 → AnalysisResult 리스트 + 구조화 로그."""
+        if not content.strip():
+            logger.warning(
+                "[OpenAI] 빈 LLM 응답 - 분석 결과 0건으로 처리 (events=%d, tool_called=%s)",
+                len(events), tool_called,
+            )
+            return []
+
         match = re.search(r'```(?:json)?\s*(.*?)```', content, re.DOTALL)
         if match:
             content = match.group(1)
         try:
             parsed = json.loads(content.strip())
         except (json.JSONDecodeError, ValueError) as e:
-            logger.error("[OpenAI] 응답 파싱 실패 - %s", e)
+            logger.error(
+                "[OpenAI] 응답 파싱 실패 - %s | content_len=%d, preview=%r",
+                e, len(content), content[:200],
+            )
             raise
 
         if isinstance(parsed, list):
