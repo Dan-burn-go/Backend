@@ -1,9 +1,11 @@
 package com.danburn.mobility.infra;
 
+import com.danburn.common.exception.GlobalException;
 import com.danburn.mobility.dto.request.OdsayApiRequest;
 import com.danburn.mobility.dto.response.OdsayApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriBuilder;
@@ -17,7 +19,7 @@ public class OdsayApiClient {
   private String odsayApiKey;
 
   public OdsayApiResponse fetchOdsayRoute(OdsayApiRequest odsayApiRequest){
-    return odsayRestClient.get()
+    OdsayApiResponse response = odsayRestClient.get()
       .uri(UriBuilder -> UriBuilder
         .path("/searchPubTransPathT")
         .queryParam("apiKey",odsayApiKey)
@@ -29,5 +31,9 @@ public class OdsayApiClient {
         .build())
       .retrieve()
       .body(OdsayApiResponse.class);
+    if (response == null || response.result() == null) {
+      throw new GlobalException(HttpStatus.BAD_GATEWAY.value(), "ODsay API 응답이 올바르지 않습니다.");
+    }
+    return response;
   }
 }
