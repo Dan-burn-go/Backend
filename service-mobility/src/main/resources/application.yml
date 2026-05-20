@@ -7,6 +7,10 @@ spring:
       port: 6379
       password: ${SPRING_DATA_REDIS_PASSWORD:}
 
+odsay:
+  api:
+    key: ${ODSAY_API_KEY:}
+
 server:
   port: 8084
   forward-headers-strategy: framework
