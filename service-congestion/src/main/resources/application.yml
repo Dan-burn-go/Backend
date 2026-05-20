@@ -11,6 +11,10 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
   flyway:
     enabled: true
     baseline-on-migrate: true
@@ -68,6 +72,11 @@ logging:
 seoul:
   api:
     key: ${SEOUL_API_KEY:}
+
+vapid:
+  public-key: ${VAPID_PUBLIC_KEY:}
+  private-key: ${VAPID_PRIVATE_KEY:}
+  subject: ${VAPID_SUBJECT:mailto:ce19f003@gmail.com}
 
 congestion:
   scheduler:
