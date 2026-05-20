@@ -20,7 +20,7 @@ public class OdsayApiClient {
 
   public OdsayApiResponse fetchOdsayRoute(OdsayApiRequest odsayApiRequest){
     OdsayApiResponse response = odsayRestClient.get()
-      .uri(UriBuilder -> UriBuilder
+      .uri(uriBuilder -> uriBuilder
         .path("/searchPubTransPathT")
         .queryParam("apiKey",odsayApiKey)
         .queryParam("SX",odsayApiRequest.originLng())

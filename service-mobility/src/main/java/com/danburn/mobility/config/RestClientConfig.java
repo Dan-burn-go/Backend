@@ -10,7 +10,7 @@ import java.time.Duration;
 @Configuration
 public class RestClientConfig {
   @Bean
-  public RestClient OdsayRestClient(){
+  public RestClient odsayRestClient(){
     SimpleClientHttpRequestFactory simpleClientHttpRequestFactory = new SimpleClientHttpRequestFactory();
     simpleClientHttpRequestFactory.setConnectTimeout(Duration.ofSeconds(5));
     simpleClientHttpRequestFactory.setReadTimeout(Duration.ofSeconds(5));
