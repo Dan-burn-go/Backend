@@ -31,14 +31,14 @@ class AireportControllerTest {
     private AiService aiService;
 
     @Test
-    @DisplayName("GET /api/aireport/{areaCode} → 조회 성공")
+    @DisplayName("GET /api/congestion/{areaCode}/ai-report → 조회 성공")
     void getLatestAiReport_success() throws Exception {
         AireportApiResponse response = new AireportApiResponse(
                 "POI001", "광화문·덕수궁", "주말 나들이 인파로 인한 혼잡", "2026-04-01 14:00"
         );
         given(aiService.getLatestAiReport("POI001")).willReturn(response);
 
-        mockMvc.perform(get("/api/aireport/POI001"))
+        mockMvc.perform(get("/api/congestion/POI001/ai-report"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.data.areaCode").value("POI001"))
@@ -48,12 +48,12 @@ class AireportControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/aireport/{areaCode} → 404 에러 응답")
+    @DisplayName("GET /api/congestion/{areaCode}/ai-report → 404 에러 응답")
     void getLatestAiReport_notFound() throws Exception {
         given(aiService.getLatestAiReport("POI999"))
                 .willThrow(new GlobalException(404, "AI 리포트 데이터가 없습니다. areaCode: POI999"));
 
-        mockMvc.perform(get("/api/aireport/POI999"))
+        mockMvc.perform(get("/api/congestion/POI999/ai-report"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("AI 리포트 데이터가 없습니다. areaCode: POI999"));

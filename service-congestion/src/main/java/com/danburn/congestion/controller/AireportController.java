@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "AI 리포트", description = "AI 리포트 조회 API")
 @RestController
-@RequestMapping("/api/aireport")
+@RequestMapping("/api/congestion")
 @RequiredArgsConstructor
 public class AireportController {
 
@@ -26,7 +26,7 @@ public class AireportController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "해당 장소의 AI 리포트 데이터 없음")
     })
-    @GetMapping("/{areaCode}")
+    @GetMapping("/{areaCode}/ai-report")
     public ApiResponse<AireportApiResponse> getLatestAiReport(
             @Parameter(description = "장소 코드 (예: POI001)", example = "POI001")
             @PathVariable String areaCode) {
