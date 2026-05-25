@@ -147,6 +147,7 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/danburn_map?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=${MAP_DB_USERNAME:-root}
       - SPRING_DATASOURCE_PASSWORD=${MAP_DB_PASSWORD:-root}
+      - KAKAO_API_KEY=${KAKAO_API_KEY}
       - OTLP_URL=http://observability:4318/v1/metrics
       - OTLP_TRACES_URL=http://observability:4318/v1/traces
       - LOKI_URL=http://observability:3100/loki/api/v1/push
@@ -173,6 +174,7 @@ services:
     environment:
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - ODSAY_API_KEY=${ODSAY_API_KEY}
       - OTLP_URL=http://observability:4318/v1/metrics
       - OTLP_TRACES_URL=http://observability:4318/v1/traces
       - LOKI_URL=http://observability:3100/loki/api/v1/push
