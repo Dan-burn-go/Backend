@@ -15,9 +15,10 @@ KST = ZoneInfo("Asia/Seoul")
 _WEEKDAY_KR = ("월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일")
 
 
-def _today_with_weekday() -> tuple[str, str]:
-    now = datetime.now(KST)
-    weekday = f"{_WEEKDAY_KR[now.weekday()]}, {'주말' if now.weekday() >= 5 else '평일'}"
+def _today_with_weekday(ref_datetime: datetime | None = None) -> tuple[str, str]:
+    now = ref_datetime or datetime.now(KST)
+    day_idx = now.weekday()
+    weekday = f"{_WEEKDAY_KR[day_idx]}, {'주말' if day_idx >= 5 else '평일'}"
     return now.date().isoformat(), weekday
 
 
@@ -102,11 +103,11 @@ SYSTEM_PROMPT_ANOMALY_TEMPLATE = """당신은 서울시 실시간 혼잡도 데�
 """
 
 
-def build_system_prompt() -> str:
-    today, weekday = _today_with_weekday()
+def build_system_prompt(ref_datetime: datetime | None = None) -> str:
+    today, weekday = _today_with_weekday(ref_datetime)
     return SYSTEM_PROMPT_TEMPLATE.format(today=today, weekday=weekday)
 
 
-def build_anomaly_system_prompt() -> str:
-    today, weekday = _today_with_weekday()
+def build_anomaly_system_prompt(ref_datetime: datetime | None = None) -> str:
+    today, weekday = _today_with_weekday(ref_datetime)
     return SYSTEM_PROMPT_ANOMALY_TEMPLATE.format(today=today, weekday=weekday)
