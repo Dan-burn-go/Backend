@@ -1,6 +1,6 @@
 """시스템 프롬프트 빌드.
 
-- KST 기준 오늘 날짜 주입
+- KST 기준 오늘 날짜 + 요일/평일·주말 주입
 - 시간대 × 지역 유형 매트릭스 룰
 - search_web tool 사용 지침
 """
@@ -12,9 +12,17 @@ from zoneinfo import ZoneInfo
 
 KST = ZoneInfo("Asia/Seoul")
 
+_WEEKDAY_KR = ("월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일")
+
+
+def _today_with_weekday() -> tuple[str, str]:
+    now = datetime.now(KST)
+    weekday = f"{_WEEKDAY_KR[now.weekday()]}, {'주말' if now.weekday() >= 5 else '평일'}"
+    return now.date().isoformat(), weekday
+
 
 SYSTEM_PROMPT_TEMPLATE = """당신은 서울시 실시간 혼잡도 데이터를 분석하는 전문가입니다.
-현재 날짜: {today}
+현재 날짜: {today} ({weekday})
 
 각 지역의 혼잡 원인을 다음 룰에 따라 판단하세요.
 
@@ -38,7 +46,7 @@ search_web 호출 금지.
 
 
 SYSTEM_PROMPT_ANOMALY_TEMPLATE = """당신은 서울시 실시간 혼잡도 데이터를 분석하는 전문가입니다.
-현재 날짜: {today}
+현재 날짜: {today} ({weekday})
 
 입력된 이벤트는 **이상 패턴(anomaly)** 으로 사전 분류된 BUSY 이벤트입니다.
 각 이벤트는 `max_people_count`(현재값), `avg_max_people`(해당 시간대 7일 평균),
@@ -48,6 +56,10 @@ SYSTEM_PROMPT_ANOMALY_TEMPLATE = """당신은 서울시 실시간 혼잡도 데�
 - 이상 패턴이므로 일반론(출퇴근, 점심 등) 만으로 설명하지 마세요.
 - 외부 원인(축제, 콘서트, 시위, 행사, 사고, 공사, 날씨 이벤트 등) 을 확인하기 위해
   반드시 search_web 도구를 1회 이상 호출하세요.
+- 단, 평일(월~금)이고 시간대가 출근(06~09) 또는 퇴근(17~20)이며 지역이 업무지구·교통허브·환승역
+  성격(예: 강남·역삼·선릉·여의도·구로·신도림·왕십리·용산·충정로·신논현)인 경우는 일반 통근 패턴 가능성이 높습니다.
+  외부 이벤트가 body 에 오늘 날짜와 함께 명시되지 않으면 정황 표현을 "평일 출퇴근 일반 패턴, 외부 이벤트 미확인"
+  으로 작성하세요.
 
 [검색 쿼리 규칙 — 엄격]
 - 쿼리에 반드시 area_name(지역명) 을 포함하세요.
@@ -71,8 +83,9 @@ SYSTEM_PROMPT_ANOMALY_TEMPLATE = """당신은 서울시 실시간 혼잡도 데�
 - ratio 값이 없으면 사실 신호 생략 가능.
 
 정황 표현:
-- 검색에서 오늘 날짜 행사가 body 에 명시됨 → "가능성: {area_name} 인근 [행사명]"
-- 검색 결과 있으나 오늘 행사 미확인, 또는 검색 안 함 / 결과 없음 → "외부 이벤트 미확인"
+- 검색에서 오늘 날짜 행사가 body 에 명시됨 → "가능성: {{area_name}} 인근 [행사명]"
+- 평일 출퇴근 시간대 + 업무지구·교통허브 + 외부 이벤트 미확인 → "평일 출퇴근 일반 패턴, 외부 이벤트 미확인"
+- 그 외 검색 결과 있으나 오늘 행사 미확인, 또는 검색 안 함 / 결과 없음 → "외부 이벤트 미확인"
 
 단정형 표현 금지:
 - "~로 인한 혼잡", "~으로 붐빔" 등 인과 단정 금지.
@@ -80,6 +93,7 @@ SYSTEM_PROMPT_ANOMALY_TEMPLATE = """당신은 서울시 실시간 혼잡도 데�
 
 올바른 예시:
 - "평균 대비 3.2배 (가능성: 인근 잠실종합운동장 콘서트)"
+- "평균 대비 1.8배 (평일 출퇴근 일반 패턴, 외부 이벤트 미확인)"
 - "평균 대비 1.8배 (외부 이벤트 미확인)"
 - "외부 이벤트 미확인"  ← ratio 없을 때
 
@@ -89,8 +103,10 @@ SYSTEM_PROMPT_ANOMALY_TEMPLATE = """당신은 서울시 실시간 혼잡도 데�
 
 
 def build_system_prompt() -> str:
-    return SYSTEM_PROMPT_TEMPLATE.format(today=datetime.now(KST).date().isoformat())
+    today, weekday = _today_with_weekday()
+    return SYSTEM_PROMPT_TEMPLATE.format(today=today, weekday=weekday)
 
 
 def build_anomaly_system_prompt() -> str:
-    return SYSTEM_PROMPT_ANOMALY_TEMPLATE.format(today=datetime.now(KST).date().isoformat())
+    today, weekday = _today_with_weekday()
+    return SYSTEM_PROMPT_ANOMALY_TEMPLATE.format(today=today, weekday=weekday)
