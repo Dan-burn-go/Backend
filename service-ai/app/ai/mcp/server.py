@@ -26,7 +26,10 @@ SEARCH_MAX_ATTEMPTS = 2
 SEARCH_RETRY_BACKOFF_SECONDS = 0.5
 
 # DDG News 결과를 0건으로 만드는 날짜 토큰 패턴
-_DATE_TOKEN_RE = re.compile(r"\d{4}|\d+\s*월|\d+\s*일")
+# ISO/슬래시/점 구분자 전체 우선 매칭 → 짧은 형태 → 한국식 단위 순서로 처리
+_DATE_TOKEN_RE = re.compile(
+    r"\d{4}[-./]\d{1,2}[-./]\d{1,2}|\d{1,2}[-./]\d{1,2}|\d{4}\s*년?|\d+\s*월|\d+\s*일"
+)
 
 
 def _sanitize_query(query: str) -> str:
