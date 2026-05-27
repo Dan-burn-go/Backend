@@ -33,7 +33,7 @@ RESPONSE_TOKEN_BUDGET = 400
 
 _KST = ZoneInfo("Asia/Seoul")
 # 모델이 환각 회피용으로 이미 안전하게 답한 경우 검증을 스킵하는 마커
-_SAFE_MESSAGE_MARKERS = ("원인 불명", "추가 모니터링")
+_SAFE_MESSAGE_MARKERS = ("원인 불명", "추가 모니터링", "외부 이벤트 미확인")
 _FALLBACK_MESSAGE = "원인 불명, 추가 모니터링 필요"
 
 
@@ -71,19 +71,27 @@ def _is_safe_message(message: str) -> bool:
     return any(marker in message for marker in _SAFE_MESSAGE_MARKERS)
 
 
+def _build_fallback_message(event: CongestionEvent) -> str:
+    """사실 신호 기반 fallback. ratio 가 있으면 포함, 없으면 정황만."""
+    if event.ratio is not None:
+        return f"평균 대비 {event.ratio:.1f}배 (외부 이벤트 미확인)"
+    return "외부 이벤트 미확인, 추가 모니터링 필요"
+
+
 def _validate_anti_hallucination(
     message: str,
     *,
     tool_called: bool,
     tool_results: list[dict[str, Any]] | None,
     today: date,
+    event: CongestionEvent,
 ) -> tuple[str, bool]:
-    """검색 결과 본문에 오늘 날짜가 없으면 메시지를 안전 문구로 강제 교체.
+    """검색 결과 본문에 오늘 날짜가 없으면 메시지를 사실 신호 기반 문구로 강제 교체.
 
     - tool_called=False: 외부 이벤트 의존하지 않는 일반 분석이므로 통과
-    - 이미 안전 문구(원인 불명/추가 모니터링)인 경우 통과
+    - 이미 안전 문구(원인 불명/추가 모니터링/외부 이벤트 미확인)인 경우 통과
     - tool_results 본문(body)+제목(title) 합본에 오늘 날짜 변형이 하나도 없으면
-      모델이 과거 기사 등 무관 정보로 합성했을 가능성 높음 → 안전 문구로 교체
+      모델이 과거 기사 등 무관 정보로 합성했을 가능성 높음 → fallback 으로 교체
 
     Returns: (검증 통과한 메시지, 교체 발생 여부)
     """
@@ -103,7 +111,7 @@ def _validate_anti_hallucination(
 
     if _has_today_marker(haystack, today):
         return message, False
-    return _FALLBACK_MESSAGE, True
+    return _build_fallback_message(event), True
 
 
 class OpenAIAnalyzer(AIAnalyzer):
@@ -328,6 +336,7 @@ class OpenAIAnalyzer(AIAnalyzer):
                 tool_called=tool_called,
                 tool_results=tool_results,
                 today=today,
+                event=event,
             )
             if replaced:
                 logger.warning(

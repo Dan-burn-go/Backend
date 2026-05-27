@@ -10,15 +10,32 @@ from __future__ import annotations
 from datetime import date
 
 from app.ai.openai.client import (
-    _FALLBACK_MESSAGE,
+    _build_fallback_message,
     _has_today_marker,
     _is_safe_message,
     _today_date_variants,
     _validate_anti_hallucination,
 )
+from app.models.schemas import CongestionEvent
 
 
 TODAY = date(2026, 5, 19)
+
+_EVENT_NO_RATIO = CongestionEvent(
+    area_code="POI001",
+    area_name="잠실",
+    congestion_level="BUSY",
+    max_people_count=50000,
+    population_time="2026-05-19 14:00",
+)
+_EVENT_WITH_RATIO = CongestionEvent(
+    area_code="POI001",
+    area_name="잠실",
+    congestion_level="BUSY",
+    max_people_count=50000,
+    population_time="2026-05-19 14:00",
+    ratio=2.3,
+)
 
 
 class TestTodayDateVariants:
@@ -62,8 +79,22 @@ class TestIsSafeMessage:
     def test_safe_when_contains_monitoring_marker(self) -> None:
         assert _is_safe_message("외부 이벤트 미확인, 추가 모니터링 진행") is True
 
+    def test_safe_when_contains_unconfirmed_event_marker(self) -> None:
+        assert _is_safe_message("평균 대비 2.3배 (외부 이벤트 미확인)") is True
+
     def test_unsafe_for_concrete_event_claim(self) -> None:
         assert _is_safe_message("프로야구 경기로 인한 혼잡") is False
+
+
+class TestBuildFallbackMessage:
+    def test_includes_ratio_when_present(self) -> None:
+        msg = _build_fallback_message(_EVENT_WITH_RATIO)
+        assert "2.3배" in msg
+        assert "외부 이벤트 미확인" in msg
+
+    def test_no_ratio_returns_generic(self) -> None:
+        msg = _build_fallback_message(_EVENT_NO_RATIO)
+        assert msg == "외부 이벤트 미확인, 추가 모니터링 필요"
 
 
 class TestValidateAntiHallucination:
@@ -74,6 +105,7 @@ class TestValidateAntiHallucination:
             tool_called=False,
             tool_results=None,
             today=TODAY,
+            event=_EVENT_NO_RATIO,
         )
         assert out == "출근 시간대 업무지구 혼잡"
         assert replaced is False
@@ -84,6 +116,7 @@ class TestValidateAntiHallucination:
             tool_called=True,
             tool_results=[{"title": "무관 기사", "body": "오래 전 일", "date": ""}],
             today=TODAY,
+            event=_EVENT_NO_RATIO,
         )
         assert replaced is False
         assert "원인 불명" in out
@@ -100,6 +133,7 @@ class TestValidateAntiHallucination:
                 },
             ],
             today=TODAY,
+            event=_EVENT_NO_RATIO,
         )
         assert out == "잠실 야구 경기로 인한 혼잡"
         assert replaced is False
@@ -122,8 +156,21 @@ class TestValidateAntiHallucination:
                 },
             ],
             today=TODAY,
+            event=_EVENT_NO_RATIO,
         )
-        assert out == _FALLBACK_MESSAGE
+        assert out == _build_fallback_message(_EVENT_NO_RATIO)
+        assert replaced is True
+
+    def test_replaces_with_ratio_when_event_has_ratio(self) -> None:
+        out, replaced = _validate_anti_hallucination(
+            "프로야구 경기로 인한 혼잡",
+            tool_called=True,
+            tool_results=[],
+            today=TODAY,
+            event=_EVENT_WITH_RATIO,
+        )
+        assert "2.3배" in out
+        assert "외부 이벤트 미확인" in out
         assert replaced is True
 
     def test_replaces_when_tool_results_empty(self) -> None:
@@ -133,6 +180,7 @@ class TestValidateAntiHallucination:
             tool_called=True,
             tool_results=[],
             today=TODAY,
+            event=_EVENT_NO_RATIO,
         )
-        assert out == _FALLBACK_MESSAGE
+        assert out == _build_fallback_message(_EVENT_NO_RATIO)
         assert replaced is True
