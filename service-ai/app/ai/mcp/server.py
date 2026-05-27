@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from typing import Any
 
 from ddgs import DDGS
@@ -23,6 +24,16 @@ mcp_server = FastMCP("ai-search-server")
 BODY_SNIPPET_MAX_CHARS = 200
 SEARCH_MAX_ATTEMPTS = 2
 SEARCH_RETRY_BACKOFF_SECONDS = 0.5
+
+# DDG News 결과를 0건으로 만드는 날짜 토큰 패턴
+_DATE_TOKEN_RE = re.compile(r"\d{4}|\d+\s*월|\d+\s*일")
+
+
+def _sanitize_query(query: str) -> str:
+    """날짜 토큰 제거 후 공백 정리. 결과가 빈 문자열이면 원본 반환."""
+    sanitized = _DATE_TOKEN_RE.sub("", query)
+    sanitized = re.sub(r" +", " ", sanitized).strip()
+    return sanitized if sanitized else query
 
 
 @mcp_server.tool()
@@ -40,6 +51,14 @@ async def search_web(query: str) -> dict[str, Any]:
     DDG의 일시 응답 파싱 오류(DecodeError) 대비로 1회 재시도한다.
     최종 실패해도 빈 결과로 반환하여 분석은 계속 진행되도록 한다 (WARN).
     """
+    sanitized = _sanitize_query(query)
+    if sanitized != query:
+        logger.info(
+            "[MCP] search_web query strip - before=%s after=%s",
+            query, sanitized,
+        )
+    query = sanitized
+
     raw: list[dict[str, Any]] | None = None
     last_error: BaseException | None = None
     for attempt in range(1, SEARCH_MAX_ATTEMPTS + 1):
