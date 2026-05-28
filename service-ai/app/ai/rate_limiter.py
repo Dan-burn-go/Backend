@@ -1,14 +1,15 @@
-"""토큰 예산 기반 Rate Limiter.
+"""요청수 + 토큰 예산 기반 Rate Limiter.
 
-- Cerebras Free Tier (qwen-3-235b-a22b-instruct-2507, 2026-04 확인)
-  · TPM 60,000 / TPH 1,000,000 / TPD 1,000,000
-  · RPM 30 / RPH 900 / RPD 14,400
-- 기존 RPM 기반 구현 한계: 배치 크기 증가 시 TPM 쉽게 초과 (구조적 결함)
-- 개선: TPM + TPD 이중 leaky bucket 으로 토큰 단위 강제
+- gpt-oss-120b (Cerebras, 2026-05 확인)
+  · RPM 5 / TPM 30,000 / TPH 1,000,000 / TPD 1,000,000
+- RPM 5(=12초당 1회)가 바인딩 제약 → 토큰만으로는 요청수 초과를 못 막음
+- 설계: RPM + TPM + TPD 삼중 leaky bucket 으로 요청수·토큰 동시 강제
+  · TPH 는 총량(1M)이 TPD 와 같아 별도 버킷 불필요 (TPD 버킷이 커버)
 
 API
-- await limiter.acquire(estimated_tokens): 두 버킷 여유 확보까지 대기
-- limiter.record_actual(actual, estimated): 응답 수신 후 실제 사용량 보정
+- await limiter.acquire(estimated_tokens): 세 버킷 여유 확보까지 대기 (요청 1건 + 토큰)
+- limiter.record_actual(actual, estimated): 응답 수신 후 실제 토큰 사용량 보정
+  · RPM 은 환불하지 않음 — 실패(429) 요청도 서버 RPM 카운터에 잡히므로
 """
 
 from __future__ import annotations
@@ -80,30 +81,33 @@ class _TokenBucket:
 
 
 class RateLimiter:
-    """TPM + TPD 이중 버킷 Rate Limiter."""
+    """RPM + TPM + TPD 삼중 버킷 Rate Limiter."""
 
-    def __init__(self, tpm_limit: int, tpd_limit: int) -> None:
+    def __init__(self, *, rpm_limit: int, tpm_limit: int, tpd_limit: int) -> None:
+        self._rpm = _TokenBucket(rpm_limit, 60.0, "RPM")
         self._tpm = _TokenBucket(tpm_limit, 60.0, "TPM")
         self._tpd = _TokenBucket(tpd_limit, 24 * 60 * 60.0, "TPD")
         self._lock = asyncio.Lock()
 
     async def acquire(self, estimated_tokens: int) -> None:
-        """두 버킷 모두 estimated_tokens 여유 확보까지 대기."""
-        if estimated_tokens <= 0:
-            return
+        """세 버킷(요청 1건 + estimated_tokens) 모두 여유 확보까지 대기."""
+        estimated_tokens = max(0, estimated_tokens)
         while True:
             async with self._lock:
+                wait_rpm = self._rpm.wait_time(1)
                 wait_tpm = self._tpm.wait_time(estimated_tokens)
                 wait_tpd = self._tpd.wait_time(estimated_tokens)
-                wait = max(wait_tpm, wait_tpd)
+                wait = max(wait_rpm, wait_tpm, wait_tpd)
                 if wait <= 0:
+                    self._rpm.consume(1)
                     self._tpm.consume(estimated_tokens)
                     self._tpd.consume(estimated_tokens)
                     return
             logger.info(
-                "[RateLimiter] 토큰 예산 대기 %.1f초 (est=%d, tpm_wait=%.1f, tpd_wait=%.1f)",
+                "[RateLimiter] 예산 대기 %.1f초 (est=%d, rpm_wait=%.1f, tpm_wait=%.1f, tpd_wait=%.1f)",
                 wait,
                 estimated_tokens,
+                wait_rpm,
                 wait_tpm,
                 wait_tpd,
             )
