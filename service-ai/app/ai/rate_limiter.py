@@ -95,8 +95,10 @@ class RateLimiter:
         while True:
             async with self._lock:
                 wait_rpm = self._rpm.wait_time(1)
-                wait_tpm = self._tpm.wait_time(estimated_tokens)
-                wait_tpd = self._tpd.wait_time(estimated_tokens)
+                # 요청 토큰이 버킷 용량을 넘으면 wait_time 이 영원히 양수 -> 무한 hang.
+                # 용량으로 clamp 해 "가득 차면 즉시 실행 후 음수 진입" 시킨다.
+                wait_tpm = self._tpm.wait_time(min(estimated_tokens, int(self._tpm.capacity)))
+                wait_tpd = self._tpd.wait_time(min(estimated_tokens, int(self._tpd.capacity)))
                 wait = max(wait_rpm, wait_tpm, wait_tpd)
                 if wait <= 0:
                     self._rpm.consume(1)
