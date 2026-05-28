@@ -52,9 +52,8 @@ def _parse_ref_datetime(events: list[CongestionEvent]) -> datetime | None:
     if not events:
         return None
     try:
-        return datetime.strptime(
-            events[0].population_time[:10], "%Y-%m-%d"
-        ).replace(tzinfo=_KST)
+        dt = datetime.fromisoformat(events[0].population_time)
+        return dt.replace(tzinfo=dt.tzinfo or _KST)
     except (ValueError, TypeError):
         return None
 
