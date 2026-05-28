@@ -11,4 +11,9 @@ dependencies {
     // Distributed Tracing (Micrometer → OpenTelemetry → OTLP)
     api 'io.micrometer:micrometer-tracing-bridge-otel'
     api 'io.opentelemetry:opentelemetry-exporter-otlp'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
