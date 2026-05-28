@@ -18,7 +18,8 @@ import java.time.Duration;
 public class AiReportEventConsumer {
 
     private static final String REDIS_KEY_PREFIX = "ai-report:";
-    private static final Duration REDIS_TTL = Duration.ofHours(4);
+    // DB 폴백 신선도(AiService.DB_FALLBACK_TTL)와 동일하게 유지 — 캐시/폴백 윈도 일치.
+    private static final Duration REDIS_TTL = Duration.ofHours(3);
 
     private final AiReportRepository aiReportRepository;
     private final StringRedisTemplate stringRedisTemplate;

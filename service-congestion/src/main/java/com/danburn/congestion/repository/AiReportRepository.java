@@ -6,10 +6,12 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.Instant;
 import java.util.Optional;
 
 public interface AiReportRepository extends JpaRepository<AiReport, Long> {
-    Optional<AiReport> findTopByAreaCodeOrderByCreatedAtDesc(String areaCode);
+    /** createdAt 이 cutoff(createdAfter) 이후인 최신 1건만 조회 — 오래된 리포트의 stale 노출 방지. */
+    Optional<AiReport> findTopByAreaCodeAndCreatedAtAfterOrderByCreatedAtDesc(String areaCode, Instant createdAfter);
 
     /** (area_code, population_time) UNIQUE 기준 atomic idempotent insert. 신규=1, 중복=0. */
     @Transactional
