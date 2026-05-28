@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -15,10 +16,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
@@ -71,7 +76,7 @@ class AiServiceTest {
     void getLatestAiReport_redisMiss() {
         given(stringRedisTemplate.opsForValue()).willReturn(valueOperations);
         given(valueOperations.get("ai-report:POI001")).willReturn(null);
-        given(aiReportRepository.findTopByAreaCodeOrderByCreatedAtDesc("POI001"))
+        given(aiReportRepository.findTopByAreaCodeAndCreatedAtAfterOrderByCreatedAtDesc(eq("POI001"), any(Instant.class)))
                 .willReturn(Optional.of(createAiReport("POI001", "광화문·덕수궁")));
 
         AireportApiResponse result = aiService.getLatestAiReport("POI001");
@@ -85,7 +90,7 @@ class AiServiceTest {
     void getLatestAiReport_redisParseError() {
         given(stringRedisTemplate.opsForValue()).willReturn(valueOperations);
         given(valueOperations.get("ai-report:POI001")).willReturn("{잘못된 JSON}");
-        given(aiReportRepository.findTopByAreaCodeOrderByCreatedAtDesc("POI001"))
+        given(aiReportRepository.findTopByAreaCodeAndCreatedAtAfterOrderByCreatedAtDesc(eq("POI001"), any(Instant.class)))
                 .willReturn(Optional.of(createAiReport("POI001", "광화문·덕수궁")));
 
         AireportApiResponse result = aiService.getLatestAiReport("POI001");
@@ -94,15 +99,36 @@ class AiServiceTest {
     }
 
     @Test
-    @DisplayName("Redis 미스 + DB 미스 → GlobalException(404)")
+    @DisplayName("Redis 미스 + DB 미스(컷오프보다 오래됨 포함) → GlobalException(404)")
     void getLatestAiReport_notFound() {
         given(stringRedisTemplate.opsForValue()).willReturn(valueOperations);
         given(valueOperations.get("ai-report:POI999")).willReturn(null);
-        given(aiReportRepository.findTopByAreaCodeOrderByCreatedAtDesc("POI999"))
+        given(aiReportRepository.findTopByAreaCodeAndCreatedAtAfterOrderByCreatedAtDesc(eq("POI999"), any(Instant.class)))
                 .willReturn(Optional.empty());
 
         assertThatThrownBy(() -> aiService.getLatestAiReport("POI999"))
                 .isInstanceOf(GlobalException.class)
                 .satisfies(ex -> assertThat(((GlobalException) ex).getStatus()).isEqualTo(404));
+    }
+
+    @Test
+    @DisplayName("DB 폴백 컷오프는 약 3시간 전이다")
+    void getLatestAiReport_dbFallbackCutoffIsThreeHoursAgo() {
+        given(stringRedisTemplate.opsForValue()).willReturn(valueOperations);
+        given(valueOperations.get("ai-report:POI001")).willReturn(null);
+        given(aiReportRepository.findTopByAreaCodeAndCreatedAtAfterOrderByCreatedAtDesc(eq("POI001"), any(Instant.class)))
+                .willReturn(Optional.of(createAiReport("POI001", "광화문·덕수궁")));
+
+        Instant before = Instant.now();
+        aiService.getLatestAiReport("POI001");
+        Instant after = Instant.now();
+
+        ArgumentCaptor<Instant> cutoffCaptor = ArgumentCaptor.forClass(Instant.class);
+        then(aiReportRepository).should()
+                .findTopByAreaCodeAndCreatedAtAfterOrderByCreatedAtDesc(eq("POI001"), cutoffCaptor.capture());
+
+        Instant cutoff = cutoffCaptor.getValue();
+        // now-3h 시점 ± 호출 사이 경과시간 범위 안에 있어야 함
+        assertThat(cutoff).isBetween(before.minus(Duration.ofHours(3)), after.minus(Duration.ofHours(3)));
     }
 }
