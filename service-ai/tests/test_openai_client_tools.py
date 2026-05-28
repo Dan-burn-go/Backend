@@ -147,6 +147,78 @@ async def test_single_tool_call_then_final_answer(analyzer):
     assert "tools" not in second_call_body
 
 
+async def test_regenerates_general_analysis_when_no_today_marker(analyzer):
+    """검색 결과에 오늘(5/5) 날짜가 없으면 일반 분석으로 재생성한다.
+
+    운영 사고 가드: hop 2 에서 모델이 과거 기사로 사건을 합성해도, tool 미사용
+    일반 분석으로 한 번 더 호출(3번째 LLM 콜)해 일반 패턴 원인을 받아 사용.
+    '미확인 / 원인 불명' 같은 고정 문구가 아니라 모델이 생성한 응답을 쓴다.
+    """
+    a, mcp = analyzer
+    # 검색 결과는 과거(3월) 기사뿐 → 오늘 날짜 마커 없음
+    mcp.call_tool.return_value = json.dumps({
+        "results": [{
+            "title": "지난 3월 강남역 행사",
+            "date": "2026-03-10",
+            "body": "3월 10일 강남역 인근 행사 성황",
+        }]
+    })
+    a._client.post.side_effect = [
+        _httpx_response(_llm_payload(content=None, tool_calls=[{
+            "id": "call_1",
+            "type": "function",
+            "function": {
+                "name": "search_web",
+                "arguments": json.dumps({"query": "강남역 행사"}),
+            },
+        }])),
+        # hop 2: 모델이 과거 기사로 사건 합성 시도 (폐기 대상)
+        _httpx_response(_final_results_payload(message="3월 행사로 인한 혼잡")),
+        # 재생성: tool 미사용 일반 분석
+        _httpx_response(_final_results_payload(message="퇴근 시간대 일반 통근 패턴")),
+    ]
+
+    results = await a.analyze([_make_event()], mode="anomaly")
+
+    assert len(results) == 1
+    assert results[0].analysis_message == "퇴근 시간대 일반 통근 패턴"
+    assert "미확인" not in results[0].analysis_message
+    assert "원인 불명" not in results[0].analysis_message
+    assert a._client.post.await_count == 3  # hop1 + hop2 + 재생성
+
+    # 재생성 호출은 tools 미주입
+    regen_body = a._client.post.call_args_list[2].kwargs["json"]
+    assert "tools" not in regen_body
+
+
+async def test_keeps_answer_when_today_marker_present(analyzer):
+    """검색 결과에 오늘 날짜가 있으면 재생성하지 않고 모델 응답을 그대로 사용."""
+    a, mcp = analyzer
+    mcp.call_tool.return_value = json.dumps({
+        "results": [{
+            "title": "강남역 콘서트",
+            "date": "2026-05-05",
+            "body": "5월 5일 오후 8시 강남역 부근 콘서트 개최 예정",
+        }]
+    })
+    a._client.post.side_effect = [
+        _httpx_response(_llm_payload(content=None, tool_calls=[{
+            "id": "call_1",
+            "type": "function",
+            "function": {
+                "name": "search_web",
+                "arguments": json.dumps({"query": "강남역 콘서트"}),
+            },
+        }])),
+        _httpx_response(_final_results_payload(message="가능성: 강남역 인근 콘서트")),
+    ]
+
+    results = await a.analyze([_make_event()], mode="anomaly")
+
+    assert results[0].analysis_message == "가능성: 강남역 인근 콘서트"
+    assert a._client.post.await_count == 2  # 재생성 없음
+
+
 async def test_parallel_tool_calls(analyzer):
     a, mcp = analyzer
     mcp.call_tool.return_value = json.dumps({

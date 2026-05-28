@@ -49,8 +49,15 @@ class TestBuildAnomalyPrompt:
     def test_includes_weekday_commute_escape_rule(self) -> None:
         out = prompt_module.build_anomaly_system_prompt(_WED)
 
-        assert "평일 출퇴근 일반 패턴, 외부 이벤트 미확인" in out
+        assert "평일 출퇴근 일반 패턴" in out
         assert "업무지구·교통허브" in out
+
+    def test_no_unknown_cause_phrasing(self) -> None:
+        # "원인 불명" / "미확인" 류 표현은 리포트에 노출하지 않는다
+        out = prompt_module.build_anomaly_system_prompt(_WED)
+
+        assert "미확인" not in out
+        assert "원인 불명" not in out
 
     def test_today_marker_rule_uses_today_iso_only(self) -> None:
         # body 매칭 룰의 {today} 는 weekday 라벨이 아닌 ISO 날짜만 들어가야 함

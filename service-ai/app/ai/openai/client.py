@@ -1,6 +1,7 @@
 """OpenAIAnalyzer — Cerebras API + MCP tool calling 으로 혼잡 원인 분석.
 
 - max_hops=1: LLM round trip 최대 2회 (initial → tool result → final)
+- 검색이 오늘 일정을 확증 못 하면 tool 미사용 일반 분석으로 재생성 (환각 차단)
 - parallel tool calls 지원
 - TPD soft limit 도달 시 tools 미주입
 - 분석 1건당 구조화 INFO 로그 (Grafana → 외부 LLM 채점)
@@ -33,9 +34,6 @@ logger = logging.getLogger(__name__)
 RESPONSE_TOKEN_BUDGET = 400
 
 _KST = ZoneInfo("Asia/Seoul")
-# 모델이 환각 회피용으로 이미 안전하게 답한 경우 검증을 스킵하는 마커
-_SAFE_MESSAGE_MARKERS = ("원인 불명", "추가 모니터링", "외부 이벤트 미확인")
-_FALLBACK_MESSAGE = "원인 불명, 추가 모니터링 필요"
 
 
 def _now_kst_date() -> date:
@@ -68,51 +66,18 @@ def _has_today_marker(text: str, today: date) -> bool:
     return any(v in text for v in _today_date_variants(today))
 
 
-def _is_safe_message(message: str) -> bool:
-    return any(marker in message for marker in _SAFE_MESSAGE_MARKERS)
+def _results_cover_today(tool_results: list[dict[str, Any]], today: date) -> bool:
+    """검색 결과(title+body) 합본에 오늘 날짜 표기가 하나라도 있으면 True.
 
-
-def _build_fallback_message(event: CongestionEvent) -> str:
-    """사실 신호 기반 fallback. ratio 가 있으면 포함, 없으면 정황만."""
-    if event.ratio is not None:
-        return f"평균 대비 {event.ratio:.1f}배 (외부 이벤트 미확인)"
-    return "외부 이벤트 미확인, 추가 모니터링 필요"
-
-
-def _validate_anti_hallucination(
-    message: str,
-    *,
-    tool_called: bool,
-    tool_results: list[dict[str, Any]] | None,
-    today: date,
-    event: CongestionEvent,
-) -> tuple[str, bool]:
-    """검색 결과 본문에 오늘 날짜가 없으면 메시지를 사실 신호 기반 문구로 강제 교체.
-
-    - tool_called=False: 외부 이벤트 의존하지 않는 일반 분석이므로 통과
-    - 이미 안전 문구(원인 불명/추가 모니터링/외부 이벤트 미확인)인 경우 통과
-    - tool_results 본문(body)+제목(title) 합본에 오늘 날짜 변형이 하나도 없으면
-      모델이 과거 기사 등 무관 정보로 합성했을 가능성 높음 → fallback 으로 교체
-
-    Returns: (검증 통과한 메시지, 교체 발생 여부)
+    있으면 검색이 오늘 일정을 다룬 것으로 보고 모델 응답을 신뢰한다.
+    없으면 모델이 과거 기사로 사건을 합성했을 수 있으므로 신뢰하지 않는다.
     """
-    if not tool_called:
-        return message, False
-    if _is_safe_message(message):
-        return message, False
-
-    haystack_parts: list[str] = []
-    for r in tool_results or []:
-        body = r.get("body") or ""
-        title = r.get("title") or ""
-        if body or title:
-            haystack_parts.append(body)
-            haystack_parts.append(title)
-    haystack = " ".join(haystack_parts)
-
-    if _has_today_marker(haystack, today):
-        return message, False
-    return _build_fallback_message(event), True
+    haystack = " ".join(
+        part
+        for r in tool_results
+        for part in (r.get("body") or "", r.get("title") or "")
+    )
+    return _has_today_marker(haystack, today)
 
 
 class OpenAIAnalyzer(AIAnalyzer):
@@ -207,6 +172,21 @@ class OpenAIAnalyzer(AIAnalyzer):
                     pass
             # hop 2 — tools 미주입 (가드레일 #1: round trip 2회 고정)
             message = await self._call_llm(messages, tools=None)
+
+        # 검색은 했지만 결과 본문에 오늘 날짜가 없으면(외부 이벤트 확증 실패)
+        # tool_call 이 없던 것처럼 일반 분석으로 재생성한다.
+        # 모델이 과거 기사로 사건을 합성하는 환각을 막고, 일반 패턴 원인을 직접 작성하게 함.
+        if tool_called and not _results_cover_today(tool_results_flat, _now_kst_date()):
+            logger.warning(
+                "[OpenAI] 검색 결과에 오늘 날짜 없음 - 일반 분석으로 재생성 (events=%d)",
+                len(events),
+            )
+            general_messages: list[dict[str, Any]] = [
+                {"role": "system", "content": build_system_prompt()},
+                {"role": "user", "content": user_message},
+            ]
+            message = await self._call_llm(general_messages, tools=None)
+            return self._parse_results(message.get("content") or "", events)
 
         return self._parse_results(
             message.get("content") or "",
@@ -367,7 +347,6 @@ class OpenAIAnalyzer(AIAnalyzer):
 
         items = parsed.get("results", parsed.get("data", []))
         event_map = {e.area_code: e for e in events}
-        today = _now_kst_date()
         results: list[AnalysisResult] = []
         for item in items:
             area_code = item.get("area_code")
@@ -378,33 +357,18 @@ class OpenAIAnalyzer(AIAnalyzer):
             if event is None:
                 continue
 
-            validated_message, replaced = _validate_anti_hallucination(
-                analysis_message,
-                tool_called=tool_called,
-                tool_results=tool_results,
-                today=today,
-                event=event,
-            )
-            if replaced:
-                logger.warning(
-                    "[OpenAI] 환각 의심 - tool_results에 오늘 날짜 없음, "
-                    "메시지 강제 교체. area_code=%s, original=%s",
-                    area_code,
-                    analysis_message,
-                )
-
             results.append(
                 AnalysisResult(
                     area_name=event.area_name,
                     area_code=area_code,
                     congestion_level=event.congestion_level,
-                    analysis_message=validated_message,
+                    analysis_message=analysis_message,
                     population_time=event.population_time,
                 )
             )
             self._log_analysis(
                 event=event,
-                analysis_message=validated_message,
+                analysis_message=analysis_message,
                 tool_called=tool_called,
                 tool_queries=tool_queries,
                 tool_results=tool_results,
