@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     ai_provider: str = "stub"  # "stub" | "openai"
     openai_base_url: str = "https://api.cerebras.ai/v1"
     openai_api_key: str = ""
-    openai_model: str = "qwen-3-235b-a22b-instruct-2507"
+    openai_model: str = "gpt-oss-120b"
 
     # ── MCP Tool Calling ──
     mcp_max_tool_hops: int = 1
@@ -14,14 +14,22 @@ class Settings(BaseSettings):
     mcp_search_max_results: int = 5
     mcp_search_region: str = "kr-kr"
 
-    # ── Rate Limit (토큰 예산 기반) ──
-    # - Cerebras Free Tier: TPM 60,000 / TPD 1,000,000
-    # - 운영 여유 마진 적용
-    tpm_limit: int = 50_000
+    # ── Rate Limit (요청수 + 토큰 예산 기반) ──
+    # - gpt-oss-120b: RPM 5 / TPM 30,000 / TPH 1,000,000 / TPD 1,000,000
+    # - 운영 여유 마진 적용 (RPM 은 재시도 요청까지 포함 → 1건 여유)
+    # - TPH 별도 버킷 미운용: 총량(1M)이 TPD 와 동일 → TPD 버킷이 그대로 커버
+    rpm_limit: int = 4
+    tpm_limit: int = 25_000
     tpd_limit: int = 900_000
     tpd_soft_limit_ratio: float = 0.8
-    # 레거시 호환용 (구 RPM 기반 설정)
-    rate_limit_rpm: int = 25
+
+    # ── LLM 429 재시도 (지수 백오프) ──
+    # - 최초 호출 포함 총 시도 횟수. 소진 시 RetriableError 전파 → DLQ
+    # - 대기 = max(base * 2**(n-1), retry_after), 상한 max_delay
+    # - RPM 슬롯(12초) 정렬: 6 → 12 → 24초 (인라인 총 ≤42초), 상한 60초=한 분 윈도우
+    llm_retry_max_attempts: int = 4
+    llm_retry_base_delay: float = 6.0
+    llm_retry_max_delay: float = 60.0
 
     # ── RabbitMQ ──
     rabbitmq_url: str  # amqp://{user}:{pass}@{host}:{port}/
@@ -31,13 +39,13 @@ class Settings(BaseSettings):
     # ── RabbitMQ DLX / DLQ ──
     # - DLX: direct, durable
     # - DLQ: TTL 24h, max-length 10,000
-    # - 재처리 워커: 10분 주기, 사이클당 최대 50건
+    # - 재처리 워커: 10분 주기, 사이클당 최대 5건 (RPM 5 한도 내 — 라이브 트래픽과 공유)
     dlq_dlx_name: str = "ai.congestion.dlx"
     rabbitmq_dlq_name: str = "ai.congestion.dlq"
     dlq_message_ttl_ms: int = 86_400_000  # 24h
     dlq_max_length: int = 10_000
     dlq_reprocess_interval_seconds: int = 600  # 10분
-    dlq_reprocess_batch_max: int = 50
+    dlq_reprocess_batch_max: int = 5
     message_max_attempt: int = 3
 
     # ── Batch ──

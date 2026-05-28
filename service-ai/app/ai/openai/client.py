@@ -18,6 +18,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
+from app.ai.errors import RetriableError
 from app.ai.interface import AIAnalyzer
 from app.ai.mcp.client import MCPClient
 from app.ai.openai.errors import _classify_429
@@ -122,6 +123,7 @@ class OpenAIAnalyzer(AIAnalyzer):
             timeout=httpx.Timeout(60.0, read=300.0),
         )
         self._rate_limiter = RateLimiter(
+            rpm_limit=settings.rpm_limit,
             tpm_limit=settings.tpm_limit,
             tpd_limit=settings.tpd_limit,
         )
@@ -215,6 +217,51 @@ class OpenAIAnalyzer(AIAnalyzer):
         )
 
     async def _call_llm(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None,
+        *,
+        tool_choice: str | None = None,
+    ) -> dict[str, Any]:
+        """429 지수 백오프 재시도 래퍼.
+
+        - RetriableError: 대기 후 재시도. 대기 = max(base*2**(n-1), retry_after), 상한 max_delay
+        - 재시도 한도 소진 시 RetriableError 전파 → 상위(batch)에서 DLQ
+        - NonRetriableError: 재시도 없이 즉시 전파 → DLQ
+        - 각 재시도는 acquire 를 다시 거치므로 RPM 버킷이 추가로 throttle
+        """
+        attempt = 1
+        while True:
+            try:
+                return await self._call_llm_once(
+                    messages, tools, tool_choice=tool_choice
+                )
+            except RetriableError as e:
+                if attempt >= settings.llm_retry_max_attempts:
+                    logger.error(
+                        "[OpenAI] 429 재시도 한도 소진 (%d/%d) → DLQ 전파 - %s",
+                        attempt,
+                        settings.llm_retry_max_attempts,
+                        e,
+                    )
+                    raise
+                delay = min(
+                    settings.llm_retry_base_delay * (2 ** (attempt - 1)),
+                    settings.llm_retry_max_delay,
+                )
+                delay = max(delay, e.retry_after)
+                logger.warning(
+                    "[OpenAI] 429 재시도 %d/%d - %.1f초 대기 (retry_after=%.1f, code=%s)",
+                    attempt,
+                    settings.llm_retry_max_attempts,
+                    delay,
+                    e.retry_after,
+                    e.error_code,
+                )
+                await asyncio.sleep(delay)
+                attempt += 1
+
+    async def _call_llm_once(
         self,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None,
