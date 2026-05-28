@@ -26,6 +26,12 @@
    SPRING_PROFILES_ACTIVE=local ./gradlew :service-gateway:bootRun
    SPRING_PROFILES_ACTIVE=local ./gradlew :service-congestion:bootRun
    ```
+   > docker compose 로 띄운 게이트웨이가 떠 있으면 8080 포트가 충돌하므로 둘 중 하나만 실행한다.
+   > Gradle 로 띄우는 경우 rate limit 해제는 같은 명령에 환경변수를 붙인다 (아래 "Rate Limiter 주의" 참고):
+   > ```bash
+   > GATEWAY_RATE_REPLENISH=100000 GATEWAY_RATE_BURST=200000 \
+   >   SPRING_PROFILES_ACTIVE=local ./gradlew :service-gateway:bootRun
+   > ```
 4. 헬스 확인: `curl http://localhost:8080/api/congestion` 이 200 이고 `data` 배열이 비어있지 않은지 확인.
 
 > 첫 실행 시 `https://jslib.k6.io` 의 summary 라이브러리를 받아오므로 인터넷 연결이 필요하다.

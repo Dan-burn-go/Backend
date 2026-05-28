@@ -4,7 +4,7 @@ import { textSummary } from 'https://jslib.k6.io/k6-summary/0.1.0/index.js';
 
 // 게이트웨이 기본 주소. dev 등 다른 환경은 BASE_URL 환경변수로 덮어쓴다.
 //   k6 run -e BASE_URL=https://dev.example.com load-test/k6/ramp-up.js
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
+const BASE_URL = (__ENV.BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
 
 export const options = {
   // VU 1 -> 50 선형 증가 (issue #333: 로컬 회귀 감지용 기준선)
@@ -31,7 +31,10 @@ export function setup() {
       `setup 실패: GET /api/congestion -> ${res.status}. 게이트웨이/service-congestion 기동 여부를 확인하세요.`,
     );
   }
-  const codes = (res.json('data') || []).map((c) => c.areaCode).filter(Boolean);
+  const jsonRes = res.json();
+  const codes = (jsonRes && Array.isArray(jsonRes.data) ? jsonRes.data : [])
+    .map((c) => c && c.areaCode)
+    .filter(Boolean);
   if (codes.length === 0) {
     throw new Error('areaCode 목록이 비어 있음 — 혼잡도 시드 데이터를 확인하세요.');
   }

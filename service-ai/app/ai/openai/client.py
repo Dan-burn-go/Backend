@@ -43,6 +43,21 @@ def _now_kst_date() -> date:
     return datetime.now(_KST).date()
 
 
+def _parse_ref_datetime(events: list[CongestionEvent]) -> datetime | None:
+    """이벤트 population_time 을 KST datetime 으로 파싱. 실패 시 None.
+
+    DLQ 재처리로 처리 시각과 이벤트 발생 시각의 날짜가 달라질 때, 프롬프트의
+    '현재 날짜'와 검증 기준 today 를 이벤트 발생일에 맞춘다.
+    """
+    if not events:
+        return None
+    try:
+        dt = datetime.fromisoformat(events[0].population_time)
+        return dt.replace(tzinfo=dt.tzinfo or _KST)
+    except (ValueError, TypeError):
+        return None
+
+
 def _today_date_variants(today: date) -> list[str]:
     """오늘 날짜를 한국 뉴스 본문에서 마주칠 만한 표기 변형 목록.
 
@@ -136,7 +151,11 @@ class OpenAIAnalyzer(AIAnalyzer):
         mode: str = "normal",
     ) -> list[AnalysisResult]:
         is_anomaly = mode == "anomaly"
-        system_prompt = build_anomaly_system_prompt() if is_anomaly else build_system_prompt()
+        ref_dt = _parse_ref_datetime(events)
+        system_prompt = (
+            build_anomaly_system_prompt(ref_dt) if is_anomaly
+            else build_system_prompt(ref_dt)
+        )
         user_content = json.dumps(
             [e.model_dump() for e in events], ensure_ascii=False
         )
@@ -214,6 +233,7 @@ class OpenAIAnalyzer(AIAnalyzer):
             tool_called=tool_called,
             tool_queries=tool_queries,
             tool_results=tool_results_flat,
+            ref_date=ref_dt.date() if ref_dt else None,
         )
 
     async def _call_llm(
@@ -339,6 +359,7 @@ class OpenAIAnalyzer(AIAnalyzer):
         tool_called: bool = False,
         tool_queries: list[str] | None = None,
         tool_results: list[dict[str, Any]] | None = None,
+        ref_date: date | None = None,
     ) -> list[AnalysisResult]:
         """LLM 최종 응답 → AnalysisResult 리스트 + 구조화 로그."""
         if not content.strip():
@@ -367,7 +388,7 @@ class OpenAIAnalyzer(AIAnalyzer):
 
         items = parsed.get("results", parsed.get("data", []))
         event_map = {e.area_code: e for e in events}
-        today = _now_kst_date()
+        today = ref_date or _now_kst_date()
         results: list[AnalysisResult] = []
         for item in items:
             area_code = item.get("area_code")
