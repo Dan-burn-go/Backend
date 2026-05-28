@@ -225,6 +225,8 @@ services:
       - LOKI_URL=http://observability:3100/loki/api/v1/push
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - GATEWAY_RATE_REPLENISH=${GATEWAY_RATE_REPLENISH:-10}
+      - GATEWAY_RATE_BURST=${GATEWAY_RATE_BURST:-20}
     depends_on:
       redis:
         condition: service_healthy

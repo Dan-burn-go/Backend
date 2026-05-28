@@ -10,8 +10,8 @@ spring:
       default-filters:
         - name: RequestRateLimiter
           args:
-            redis-rate-limiter.replenishRate: 10
-            redis-rate-limiter.burstCapacity: 20
+            redis-rate-limiter.replenishRate: ${GATEWAY_RATE_REPLENISH:10}
+            redis-rate-limiter.burstCapacity: ${GATEWAY_RATE_BURST:20}
             redis-rate-limiter.requestedTokens: 1
             key-resolver: "#{@ipKeyResolver}"
       routes:
