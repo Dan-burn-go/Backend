@@ -41,6 +41,21 @@ def _now_kst_date() -> date:
     return datetime.now(_KST).date()
 
 
+def _parse_ref_datetime(events: list[CongestionEvent]) -> datetime | None:
+    """이벤트 population_time 을 KST datetime 으로 파싱. 실패 시 None.
+
+    DLQ 재처리로 처리 시각과 이벤트 발생 시각의 날짜가 달라질 때, 프롬프트의
+    '현재 날짜'와 검증 기준 today 를 이벤트 발생일에 맞춘다.
+    """
+    if not events:
+        return None
+    try:
+        dt = datetime.fromisoformat(events[0].population_time)
+        return dt.replace(tzinfo=dt.tzinfo or _KST)
+    except (ValueError, TypeError):
+        return None
+
+
 def _today_date_variants(today: date) -> list[str]:
     """오늘 날짜를 한국 뉴스 본문에서 마주칠 만한 표기 변형 목록.
 
@@ -101,7 +116,11 @@ class OpenAIAnalyzer(AIAnalyzer):
         mode: str = "normal",
     ) -> list[AnalysisResult]:
         is_anomaly = mode == "anomaly"
-        system_prompt = build_anomaly_system_prompt() if is_anomaly else build_system_prompt()
+        ref_dt = _parse_ref_datetime(events)
+        system_prompt = (
+            build_anomaly_system_prompt(ref_dt) if is_anomaly
+            else build_system_prompt(ref_dt)
+        )
         user_content = json.dumps(
             [e.model_dump() for e in events], ensure_ascii=False
         )
@@ -173,16 +192,17 @@ class OpenAIAnalyzer(AIAnalyzer):
             # hop 2 — tools 미주입 (가드레일 #1: round trip 2회 고정)
             message = await self._call_llm(messages, tools=None)
 
-        # 검색은 했지만 결과 본문에 오늘 날짜가 없으면(외부 이벤트 확증 실패)
+        # 검색은 했지만 결과 본문에 오늘(이벤트 발생일) 날짜가 없으면(외부 이벤트 확증 실패)
         # tool_call 이 없던 것처럼 일반 분석으로 재생성한다.
         # 모델이 과거 기사로 사건을 합성하는 환각을 막고, 일반 패턴 원인을 직접 작성하게 함.
-        if tool_called and not _results_cover_today(tool_results_flat, _now_kst_date()):
+        ref_date = ref_dt.date() if ref_dt else _now_kst_date()
+        if tool_called and not _results_cover_today(tool_results_flat, ref_date):
             logger.warning(
                 "[OpenAI] 검색 결과에 오늘 날짜 없음 - 일반 분석으로 재생성 (events=%d)",
                 len(events),
             )
             general_messages: list[dict[str, Any]] = [
-                {"role": "system", "content": build_system_prompt()},
+                {"role": "system", "content": build_system_prompt(ref_dt)},
                 {"role": "user", "content": user_message},
             ]
             message = await self._call_llm(general_messages, tools=None)
