@@ -11,14 +11,14 @@ from app.ai.rate_limiter import RateLimiter, _TokenBucket, estimate_prompt_token
 
 @pytest.mark.asyncio
 async def test_acquire_fast_path_under_budget():
-    limiter = RateLimiter(tpm_limit=1000, tpd_limit=10_000)
+    limiter = RateLimiter(rpm_limit=10**9, tpm_limit=1000, tpd_limit=10_000)
     # 여유 충분 → 즉시 반환
     await asyncio.wait_for(limiter.acquire(100), timeout=0.5)
 
 
 @pytest.mark.asyncio
 async def test_acquire_blocks_when_tpm_exhausted(monkeypatch):
-    limiter = RateLimiter(tpm_limit=100, tpd_limit=1_000_000)
+    limiter = RateLimiter(rpm_limit=10**9, tpm_limit=100, tpd_limit=1_000_000)
     # 전체 예산 소진
     await limiter.acquire(100)
 
@@ -43,7 +43,7 @@ async def test_acquire_blocks_when_tpm_exhausted(monkeypatch):
 
 
 def test_record_actual_adjusts_consumed_amount():
-    limiter = RateLimiter(tpm_limit=1000, tpd_limit=10_000)
+    limiter = RateLimiter(rpm_limit=10**9, tpm_limit=1000, tpd_limit=10_000)
     limiter._tpm._available = 1000.0
     limiter._tpd._available = 10_000.0
 
@@ -57,7 +57,7 @@ def test_record_actual_adjusts_consumed_amount():
 
 
 def test_record_actual_refunds_when_overestimated():
-    limiter = RateLimiter(tpm_limit=1000, tpd_limit=10_000)
+    limiter = RateLimiter(rpm_limit=10**9, tpm_limit=1000, tpd_limit=10_000)
     limiter._tpm._available = 1000.0
     limiter._tpd._available = 10_000.0
     limiter._tpm.consume(300)
@@ -71,7 +71,7 @@ def test_record_actual_refunds_when_overestimated():
 @pytest.mark.asyncio
 async def test_acquire_blocks_when_tpd_exhausted(monkeypatch):
     """TPD 소진 시 TPM 여유 있어도 대기 필요."""
-    limiter = RateLimiter(tpm_limit=1_000_000, tpd_limit=100)
+    limiter = RateLimiter(rpm_limit=10**9, tpm_limit=1_000_000, tpd_limit=100)
     await limiter.acquire(100)
 
     sleep_calls: list[float] = []
@@ -86,6 +86,37 @@ async def test_acquire_blocks_when_tpd_exhausted(monkeypatch):
     monkeypatch.setattr("app.ai.rate_limiter.asyncio.sleep", fake_sleep)
     await asyncio.wait_for(limiter.acquire(50), timeout=1.0)
     assert sleep_calls and sleep_calls[0] > 0
+
+
+@pytest.mark.asyncio
+async def test_acquire_blocks_when_rpm_exhausted(monkeypatch):
+    """토큰 여유가 충분해도 RPM 소진 시 대기 필요 (요청수 강제)."""
+    limiter = RateLimiter(rpm_limit=2, tpm_limit=1_000_000, tpd_limit=1_000_000)
+    # 작은 토큰이라 TPM/TPD 는 넉넉 → RPM 버킷만 소진
+    await limiter.acquire(10)
+    await limiter.acquire(10)  # 2/2 → RPM 버킷 비움
+
+    sleep_calls: list[float] = []
+    original_sleep = asyncio.sleep
+
+    async def fake_sleep(delay):
+        sleep_calls.append(delay)
+        limiter._rpm._available = 2.0  # 무한 루프 방지 → RPM 충전
+        await original_sleep(0)
+
+    monkeypatch.setattr("app.ai.rate_limiter.asyncio.sleep", fake_sleep)
+    await asyncio.wait_for(limiter.acquire(10), timeout=1.0)
+    assert sleep_calls and sleep_calls[0] > 0
+
+
+def test_record_actual_does_not_refund_rpm():
+    """실패 보정(record_actual)은 토큰만 환불, RPM 은 유지 (서버 카운터 반영)."""
+    limiter = RateLimiter(rpm_limit=5, tpm_limit=1000, tpd_limit=10_000)
+    limiter._rpm.consume(1)
+    before = limiter._rpm._available
+    # 429 실패 경로: actual=0, estimated=400 → 토큰 전액 환불
+    limiter.record_actual(actual_tokens=0, estimated_tokens=400)
+    assert limiter._rpm._available == pytest.approx(before, abs=0.01)
 
 
 def test_token_bucket_wait_time_calculation():
