@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
@@ -79,6 +80,17 @@ class OdsayApiClientTest {
             assertThatThrownBy(() -> odsayApiClient.fetchOdsayRoute(REQUEST))
                     .isInstanceOf(OdsayServerException.class)
                     .hasMessage("ODsay API 응답이 없습니다.");
+        }
+
+        @Test
+        @DisplayName("네트워크 오류 시 OdsayServerException을 던진다")
+        void network_error_throws_odsay_server_exception() {
+            given(responseSpec.body(OdsayApiResponse.class))
+                    .willThrow(new ResourceAccessException("연결 거부"));
+
+            assertThatThrownBy(() -> odsayApiClient.fetchOdsayRoute(REQUEST))
+                    .isInstanceOf(OdsayServerException.class)
+                    .hasMessageContaining("ODsay API 호출 실패");
         }
 
         @Test

@@ -4,6 +4,7 @@ import com.danburn.common.exception.GlobalException;
 import com.danburn.mobility.dto.request.OdsayApiRequest;
 import com.danburn.mobility.dto.response.OdsayApiResponse;
 import com.danburn.mobility.dto.response.TransitRouteResponse;
+import com.danburn.mobility.exception.OdsayServerException;
 import com.danburn.mobility.infra.OdsayApiClient;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -60,11 +61,11 @@ class OdsayServiceTest {
         @DisplayName("client가 GlobalException을 던지면 그대로 전파된다")
         void client_throws_global_exception_propagates() {
             given(odsayApiClient.fetchOdsayRoute(REQUEST))
-                    .willThrow(new GlobalException(502, "ODsay API 응답이 올바르지 않습니다."));
+                    .willThrow(new GlobalException(503, "경로를 찾을 수 없습니다."));
 
             assertThatThrownBy(() -> odsayService.fetchOdsayRoute(REQUEST))
                     .isInstanceOf(GlobalException.class)
-                    .hasMessage("ODsay API 응답이 올바르지 않습니다.");
+                    .hasMessage("경로를 찾을 수 없습니다.");
 
             then(odsayResponseMapper).shouldHaveNoInteractions();
         }
