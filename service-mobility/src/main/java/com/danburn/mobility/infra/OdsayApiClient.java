@@ -3,12 +3,12 @@ package com.danburn.mobility.infra;
 import com.danburn.common.exception.GlobalException;
 import com.danburn.mobility.dto.request.OdsayApiRequest;
 import com.danburn.mobility.dto.response.OdsayApiResponse;
+import com.danburn.mobility.exception.OdsayServerException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.util.UriBuilder;
 
 @Component
 @RequiredArgsConstructor
@@ -31,8 +31,11 @@ public class OdsayApiClient {
         .build())
       .retrieve()
       .body(OdsayApiResponse.class);
-    if (response == null || response.result() == null) {
-      throw new GlobalException(HttpStatus.BAD_GATEWAY.value(), "ODsay API 응답이 올바르지 않습니다.");
+    if (response == null) {
+      throw new OdsayServerException("ODsay API 응답이 없습니다.");
+    }
+    if (response.result() == null) {
+      throw new GlobalException(HttpStatus.SERVICE_UNAVAILABLE.value(), "경로를 찾을 수 없습니다.");
     }
     return response;
   }
