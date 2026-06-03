@@ -38,6 +38,21 @@ management:
     tracing:
       endpoint: ${OTLP_TRACES_URL:http://localhost:4318/v1/traces}
 
+resilience4j:
+  circuitbreaker:
+    instances:
+      odsay:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        record-exceptions:
+          - com.danburn.mobility.exception.OdsayServerException
+        ignore-exceptions:
+          - com.danburn.common.exception.GlobalException
+
 logging:
   loki:
     url: ${LOKI_URL:http://localhost:3100/loki/api/v1/push}
