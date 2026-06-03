@@ -25,7 +25,7 @@ public class OdsayService {
         );
     }
 
-    private TransitRouteResponse fetchOdsayRouteFallback(OdsayApiRequest odsayApiRequest, Throwable t) {
+    TransitRouteResponse fetchOdsayRouteFallback(OdsayApiRequest odsayApiRequest, Throwable t) {
         log.warn("ODsay 서킷 브레이커 작동 - fallback 실행: {}", t.getMessage());
         throw new GlobalException(HttpStatus.SERVICE_UNAVAILABLE.value(), "대중교통 경로 조회 서비스가 일시적으로 불가합니다.");
     }
