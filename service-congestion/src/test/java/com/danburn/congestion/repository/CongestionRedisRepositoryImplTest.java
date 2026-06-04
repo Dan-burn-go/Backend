@@ -137,7 +137,7 @@ class CongestionRedisRepositoryImplTest {
         @DisplayName("키 없으면 빈 목록")
         void emptyWhenNoKeys() {
             given(stringRedisTemplate.opsForZSet()).willReturn(zSetOps);
-            given(zSetOps.rangeByScore(eq("congestion:area_codes"), anyDouble(), eq(Double.MAX_VALUE))).willReturn(Collections.emptySet());
+            given(zSetOps.rangeByScore(eq("congestion:area_codes"), anyDouble(), anyDouble())).willReturn(Collections.emptySet());
 
             List<CongestionRedisDto> result = repository.findAll();
 

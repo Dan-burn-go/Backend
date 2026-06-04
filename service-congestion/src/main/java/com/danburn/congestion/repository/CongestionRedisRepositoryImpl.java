@@ -40,7 +40,7 @@ public class CongestionRedisRepositoryImpl implements CongestionRedisRepository 
         // ZSET 청소는 write 경로(saveAll) 에서 일괄 처리한다.
         long now = System.currentTimeMillis();
         Set<String> codes = stringRedisTemplate.opsForZSet()
-                .rangeByScore(AREA_CODES_SET_KEY, now, Double.MAX_VALUE);
+                .rangeByScore(AREA_CODES_SET_KEY, now, Double.POSITIVE_INFINITY);
         return codes != null ? codes : Collections.emptySet();
     }
 
