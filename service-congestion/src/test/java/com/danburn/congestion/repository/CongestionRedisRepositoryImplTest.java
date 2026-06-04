@@ -11,8 +11,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
+import org.springframework.data.redis.core.SetOperations;
 import org.springframework.data.redis.core.ValueOperations;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,6 +33,10 @@ class CongestionRedisRepositoryImplTest {
 
     @Mock
     private ValueOperations<String, CongestionRedisDto> valueOps;
+
+    @Mock
+    @SuppressWarnings("rawtypes")
+    private SetOperations setOps;
 
     @Mock
     private Cursor<String> emptyCursor;
@@ -54,6 +60,7 @@ class CongestionRedisRepositoryImplTest {
         void save() {
             CongestionRedisDto item = dto("POI001");
             given(congestionRedisTemplate.opsForValue()).willReturn(valueOps);
+            given(congestionRedisTemplate.opsForSet()).willReturn(setOps);
 
             repository.save(item);
 
@@ -126,8 +133,8 @@ class CongestionRedisRepositoryImplTest {
         @Test
         @DisplayName("키 없으면 빈 목록")
         void emptyWhenNoKeys() {
-            given(congestionRedisTemplate.scan(any(ScanOptions.class))).willReturn(emptyCursor);
-            given(emptyCursor.hasNext()).willReturn(false);
+            given(congestionRedisTemplate.opsForSet()).willReturn(setOps);
+            given(setOps.members(eq("congestion:area_codes"))).willReturn(Collections.emptySet());
 
             List<CongestionRedisDto> result = repository.findAll();
 
@@ -142,6 +149,8 @@ class CongestionRedisRepositoryImplTest {
         @Test
         @DisplayName("areaCode → key 변환 후 delete 호출")
         void delete() {
+            given(congestionRedisTemplate.opsForSet()).willReturn(setOps);
+
             repository.delete("POI001");
 
             then(congestionRedisTemplate).should().delete("congestion:dto:POI001");
