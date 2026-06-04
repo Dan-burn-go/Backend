@@ -12,6 +12,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -98,6 +99,7 @@ public class CongestionService {
                 });
     }
 
+    @Cacheable("congestionList")
     public List<CongestionResponse> findAll() {
         List<CongestionRedisDto> redisList = congestionRedisRepository.findAll();
         if (!redisList.isEmpty()) {

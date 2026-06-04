@@ -5,13 +5,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.SessionCallback;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Repository;
 
-import org.springframework.data.redis.core.Cursor;
-import org.springframework.data.redis.core.ScanOptions;
-
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -23,14 +20,35 @@ import java.util.concurrent.TimeUnit;
 public class CongestionRedisRepositoryImpl implements CongestionRedisRepository {
 
     private final RedisTemplate<String, CongestionRedisDto> congestionRedisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
 
     private static final String KEY_PREFIX = "congestion:dto:";
+    private static final String AREA_CODES_SET_KEY = "congestion:area_codes";
     private static final long TTL_MINUTES = 15;
+
+    private void addAreaCode(String areaCode) {
+        long expireAt = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(TTL_MINUTES);
+        stringRedisTemplate.opsForZSet().add(AREA_CODES_SET_KEY, areaCode, expireAt);
+    }
+
+    private void removeAreaCode(String areaCode) {
+        stringRedisTemplate.opsForZSet().remove(AREA_CODES_SET_KEY, areaCode);
+    }
+
+    private Set<String> getAreaCodes() {
+        // read-only: 만료 항목은 multiGet 결과 filter(nonNull) 로 걸러지고,
+        // ZSET 청소는 write 경로(saveAll) 에서 일괄 처리한다.
+        long now = System.currentTimeMillis();
+        Set<String> codes = stringRedisTemplate.opsForZSet()
+                .rangeByScore(AREA_CODES_SET_KEY, now, Double.POSITIVE_INFINITY);
+        return codes != null ? codes : Collections.emptySet();
+    }
 
     @Override
     public void save(CongestionRedisDto dto) {
         String key = KEY_PREFIX + dto.areaCode();
         congestionRedisTemplate.opsForValue().set(key, dto, TTL_MINUTES, TimeUnit.MINUTES);
+        addAreaCode(dto.areaCode());
     }
 
     @Override
@@ -48,6 +66,21 @@ public class CongestionRedisRepositoryImpl implements CongestionRedisRepository 
                 return null;
             }
         });
+
+        long now = System.currentTimeMillis();
+        long expireAt = now + TimeUnit.MINUTES.toMillis(TTL_MINUTES);
+        stringRedisTemplate.executePipelined(new SessionCallback<>() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public Object execute(RedisOperations operations) {
+                // 만료된 멤버 일괄 청소 (write 경로에서만 정리, getAreaCodes 는 read-only)
+                operations.opsForZSet().removeRangeByScore(AREA_CODES_SET_KEY, 0, now);
+                for (CongestionRedisDto dto : dtos) {
+                    operations.opsForZSet().add(AREA_CODES_SET_KEY, dto.areaCode(), expireAt);
+                }
+                return null;
+            }
+        });
     }
 
     @Override
@@ -59,17 +92,11 @@ public class CongestionRedisRepositoryImpl implements CongestionRedisRepository 
 
     @Override
     public List<CongestionRedisDto> findAll() {
-        Set<String> keys = new HashSet<>();
-        ScanOptions options = ScanOptions.scanOptions().match(KEY_PREFIX + "*").count(1000).build();
-        try (Cursor<String> cursor = congestionRedisTemplate.scan(options)) {
-            while (cursor.hasNext()) {
-                keys.add(cursor.next());
-            }
-        }
-
-        if (keys.isEmpty()) {
+        Set<String> areaCodes = getAreaCodes();
+        if (areaCodes == null || areaCodes.isEmpty()) {
             return Collections.emptyList();
         }
+        List<String> keys = areaCodes.stream().map(code -> KEY_PREFIX + code).toList();
 
         List<CongestionRedisDto> values = congestionRedisTemplate.opsForValue().multiGet(keys);
         if (values == null) {
@@ -93,5 +120,6 @@ public class CongestionRedisRepositoryImpl implements CongestionRedisRepository 
     public void delete(String areaCode) {
         String key = KEY_PREFIX + areaCode;
         congestionRedisTemplate.delete(key);
+        removeAreaCode(areaCode);
     }
 }
