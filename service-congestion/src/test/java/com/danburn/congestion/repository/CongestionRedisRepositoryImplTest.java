@@ -19,6 +19,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -136,7 +137,7 @@ class CongestionRedisRepositoryImplTest {
         @DisplayName("키 없으면 빈 목록")
         void emptyWhenNoKeys() {
             given(stringRedisTemplate.opsForZSet()).willReturn(zSetOps);
-            given(zSetOps.range(eq("congestion:area_codes"), eq(0L), eq(-1L))).willReturn(Collections.emptySet());
+            given(zSetOps.rangeByScore(eq("congestion:area_codes"), anyDouble(), anyDouble())).willReturn(Collections.emptySet());
 
             List<CongestionRedisDto> result = repository.findAll();
 
