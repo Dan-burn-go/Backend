@@ -36,9 +36,11 @@ public class CongestionRedisRepositoryImpl implements CongestionRedisRepository 
     }
 
     private Set<String> getAreaCodes() {
+        // read-only: 만료 항목은 multiGet 결과 filter(nonNull) 로 걸러지고,
+        // ZSET 청소는 write 경로(saveAll) 에서 일괄 처리한다.
         long now = System.currentTimeMillis();
-        stringRedisTemplate.opsForZSet().removeRangeByScore(AREA_CODES_SET_KEY, 0, now);
-        Set<String> codes = stringRedisTemplate.opsForZSet().range(AREA_CODES_SET_KEY, 0, -1);
+        Set<String> codes = stringRedisTemplate.opsForZSet()
+                .rangeByScore(AREA_CODES_SET_KEY, now, Double.MAX_VALUE);
         return codes != null ? codes : Collections.emptySet();
     }
 
@@ -65,11 +67,14 @@ public class CongestionRedisRepositoryImpl implements CongestionRedisRepository 
             }
         });
 
-        long expireAt = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(TTL_MINUTES);
+        long now = System.currentTimeMillis();
+        long expireAt = now + TimeUnit.MINUTES.toMillis(TTL_MINUTES);
         stringRedisTemplate.executePipelined(new SessionCallback<>() {
             @Override
             @SuppressWarnings("unchecked")
             public Object execute(RedisOperations operations) {
+                // 만료된 멤버 일괄 청소 (write 경로에서만 정리, getAreaCodes 는 read-only)
+                operations.opsForZSet().removeRangeByScore(AREA_CODES_SET_KEY, 0, now);
                 for (CongestionRedisDto dto : dtos) {
                     operations.opsForZSet().add(AREA_CODES_SET_KEY, dto.areaCode(), expireAt);
                 }
