@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.SessionCallback;
-import org.springframework.data.redis.core.SetOperations;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collections;
@@ -20,24 +20,26 @@ import java.util.concurrent.TimeUnit;
 public class CongestionRedisRepositoryImpl implements CongestionRedisRepository {
 
     private final RedisTemplate<String, CongestionRedisDto> congestionRedisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
 
     private static final String KEY_PREFIX = "congestion:dto:";
     private static final String AREA_CODES_SET_KEY = "congestion:area_codes";
     private static final long TTL_MINUTES = 15;
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     private void addAreaCode(String areaCode) {
-        ((SetOperations) congestionRedisTemplate.opsForSet()).add(AREA_CODES_SET_KEY, areaCode);
+        long expireAt = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(TTL_MINUTES);
+        stringRedisTemplate.opsForZSet().add(AREA_CODES_SET_KEY, areaCode, expireAt);
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     private void removeAreaCode(String areaCode) {
-        ((SetOperations) congestionRedisTemplate.opsForSet()).remove(AREA_CODES_SET_KEY, areaCode);
+        stringRedisTemplate.opsForZSet().remove(AREA_CODES_SET_KEY, areaCode);
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     private Set<String> getAreaCodes() {
-        return ((SetOperations) congestionRedisTemplate.opsForSet()).members(AREA_CODES_SET_KEY);
+        long now = System.currentTimeMillis();
+        stringRedisTemplate.opsForZSet().removeRangeByScore(AREA_CODES_SET_KEY, 0, now);
+        Set<String> codes = stringRedisTemplate.opsForZSet().range(AREA_CODES_SET_KEY, 0, -1);
+        return codes != null ? codes : Collections.emptySet();
     }
 
     @Override
@@ -51,14 +53,25 @@ public class CongestionRedisRepositoryImpl implements CongestionRedisRepository 
     public void saveAll(List<CongestionRedisDto> dtos) {
         congestionRedisTemplate.executePipelined(new SessionCallback<>() {
             @Override
-            @SuppressWarnings({"unchecked", "rawtypes"})
+            @SuppressWarnings("unchecked")
             public Object execute(RedisOperations operations) {
                 RedisOperations<String, CongestionRedisDto> ops =
                         (RedisOperations<String, CongestionRedisDto>) operations;
                 for (CongestionRedisDto dto : dtos) {
                     String key = KEY_PREFIX + dto.areaCode();
                     ops.opsForValue().set(key, dto, TTL_MINUTES, TimeUnit.MINUTES);
-                    ((SetOperations) ops.opsForSet()).add(AREA_CODES_SET_KEY, dto.areaCode());
+                }
+                return null;
+            }
+        });
+
+        long expireAt = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(TTL_MINUTES);
+        stringRedisTemplate.executePipelined(new SessionCallback<>() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public Object execute(RedisOperations operations) {
+                for (CongestionRedisDto dto : dtos) {
+                    operations.opsForZSet().add(AREA_CODES_SET_KEY, dto.areaCode(), expireAt);
                 }
                 return null;
             }

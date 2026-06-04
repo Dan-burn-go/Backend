@@ -1,18 +1,17 @@
 package com.danburn.congestion.repository;
 
 import com.danburn.congestion.dto.CongestionRedisDto;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ScanOptions;
-import org.springframework.data.redis.core.SetOperations;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.ZSetOperations;
 
 import java.util.Collections;
 import java.util.List;
@@ -32,17 +31,20 @@ class CongestionRedisRepositoryImplTest {
     private RedisTemplate<String, CongestionRedisDto> congestionRedisTemplate;
 
     @Mock
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Mock
     private ValueOperations<String, CongestionRedisDto> valueOps;
 
     @Mock
-    @SuppressWarnings("rawtypes")
-    private SetOperations setOps;
+    private ZSetOperations<String, String> zSetOps;
 
-    @Mock
-    private Cursor<String> emptyCursor;
-
-    @InjectMocks
     private CongestionRedisRepositoryImpl repository;
+
+    @BeforeEach
+    void setUp() {
+        repository = new CongestionRedisRepositoryImpl(congestionRedisTemplate, stringRedisTemplate);
+    }
 
     private CongestionRedisDto dto(String areaCode) {
         return new CongestionRedisDto(
@@ -60,7 +62,7 @@ class CongestionRedisRepositoryImplTest {
         void save() {
             CongestionRedisDto item = dto("POI001");
             given(congestionRedisTemplate.opsForValue()).willReturn(valueOps);
-            given(congestionRedisTemplate.opsForSet()).willReturn(setOps);
+            given(stringRedisTemplate.opsForZSet()).willReturn(zSetOps);
 
             repository.save(item);
 
@@ -133,8 +135,8 @@ class CongestionRedisRepositoryImplTest {
         @Test
         @DisplayName("키 없으면 빈 목록")
         void emptyWhenNoKeys() {
-            given(congestionRedisTemplate.opsForSet()).willReturn(setOps);
-            given(setOps.members(eq("congestion:area_codes"))).willReturn(Collections.emptySet());
+            given(stringRedisTemplate.opsForZSet()).willReturn(zSetOps);
+            given(zSetOps.range(eq("congestion:area_codes"), eq(0L), eq(-1L))).willReturn(Collections.emptySet());
 
             List<CongestionRedisDto> result = repository.findAll();
 
@@ -149,7 +151,7 @@ class CongestionRedisRepositoryImplTest {
         @Test
         @DisplayName("areaCode → key 변환 후 delete 호출")
         void delete() {
-            given(congestionRedisTemplate.opsForSet()).willReturn(setOps);
+            given(stringRedisTemplate.opsForZSet()).willReturn(zSetOps);
 
             repository.delete("POI001");
 
