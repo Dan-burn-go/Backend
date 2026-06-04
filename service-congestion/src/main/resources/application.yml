@@ -39,6 +39,10 @@ spring:
 server:
   port: 8082
   forward-headers-strategy: framework
+  compression:
+    enabled: true
+    mime-types: application/json
+    min-response-size: 1024
 
 management:
   endpoints:
