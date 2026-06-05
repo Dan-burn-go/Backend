@@ -71,6 +71,11 @@ public class AnomalyDetector {
                 anomaly = true;
                 ratio = -1.0;
                 log.info("[AnomalyDetector] baseline 부재 fallback - areaCode={}", areaCode);
+            } else if (avgMax <= 0.0) {
+                // avgMax=0이면 ratio 계산 불가(Infinity 방지) → delta 조건만 판정, ratio=-1.0으로 null 노출
+                ratio = -1.0;
+                double delta = current.doubleValue();
+                anomaly = delta >= deltaThreshold;
             } else {
                 ratio = current.doubleValue() / avgMax;
                 double delta = current.doubleValue() - avgMax;

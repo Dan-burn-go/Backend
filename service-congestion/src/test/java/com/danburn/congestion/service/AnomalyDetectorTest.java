@@ -150,6 +150,33 @@ class AnomalyDetectorTest {
         }
 
         @Test
+        @DisplayName("avgMax=0 이고 current < deltaThreshold → anomaly 없음, ratio Infinity 미노출")
+        void avgMaxZeroNoDivisionByZero() {
+            CongestionRedisDto dto = busyDto("POI999", 1000);
+            // avgMax=0.0, current=1000 < 3000 → anomaly false
+            given(hourlyAvgCacheService.getAvgMax(eq("POI999"), any(int.class))).willReturn(Optional.of(0.0));
+
+            List<CongestionAnomalyEvent> events = anomalyDetector.detectAnomalies(List.of(dto));
+
+            assertThat(events).isEmpty();
+            then(stringRedisTemplate).should(never()).opsForValue();
+        }
+
+        @Test
+        @DisplayName("avgMax=0 이고 current >= deltaThreshold → anomaly 발생, ratio 는 null")
+        void avgMaxZeroWithAnomaly() {
+            CongestionRedisDto dto = busyDto("POI999", 4000);
+            given(hourlyAvgCacheService.getAvgMax(eq("POI999"), any(int.class))).willReturn(Optional.of(0.0));
+            given(stringRedisTemplate.opsForValue()).willReturn(valueOps);
+            given(valueOps.setIfAbsent(anyString(), eq("1"), any(Duration.class))).willReturn(true);
+
+            List<CongestionAnomalyEvent> events = anomalyDetector.detectAnomalies(List.of(dto));
+
+            assertThat(events).hasSize(1);
+            assertThat(events.get(0).ratio()).isNull();
+        }
+
+        @Test
         @DisplayName("maxPeopleCount null → 해당 dto 건너뜀")
         void nullMaxPeopleCount() {
             CongestionRedisDto dto = new CongestionRedisDto(
