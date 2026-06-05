@@ -16,6 +16,8 @@ import java.util.List;
 
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -95,5 +97,31 @@ class CongestionControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("해당 장소의 혼잡도 데이터가 없습니다. areaCode: POI999"));
+    }
+
+    @Test
+    @DisplayName("GET /api/congestion → 200 OK + ETag 헤더 반환")
+    void findAll_returnsETag() throws Exception {
+        List<CongestionResponse> responses = List.of(createResponse("POI001", "붐빔"));
+        given(congestionService.findAll()).willReturn(responses);
+        String expectedETag = "\"" + Integer.toHexString(responses.hashCode()) + "\"";
+
+        mockMvc.perform(get("/api/congestion"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("ETag", expectedETag));
+    }
+
+    @Test
+    @DisplayName("GET /api/congestion → If-None-Match 일치 시 304 Not Modified 반환")
+    void findAll_notModified() throws Exception {
+        List<CongestionResponse> responses = List.of(createResponse("POI001", "붐빔"));
+        given(congestionService.findAll()).willReturn(responses);
+        String expectedETag = "\"" + Integer.toHexString(responses.hashCode()) + "\"";
+
+        mockMvc.perform(get("/api/congestion")
+                        .header("If-None-Match", expectedETag))
+                .andExpect(status().isNotModified())
+                .andExpect(header().string("ETag", expectedETag))
+                .andExpect(content().string(""));
     }
 }
