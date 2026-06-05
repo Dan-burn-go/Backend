@@ -41,11 +41,12 @@ public class AnomalyDetector {
     private final HourlyAvgCacheService hourlyAvgCacheService;
     private final StringRedisTemplate stringRedisTemplate;
 
+    // 필드 초기값 = @Value 기본값. Spring 미기동 단위 테스트에서도 실제 임계값으로 동작.
     @Value("${congestion.anomaly.max-people-ratio:1.5}")
-    private double ratioThreshold;
+    private double ratioThreshold = 1.5;
 
     @Value("${congestion.anomaly.min-people-delta:3000}")
-    private double deltaThreshold;
+    private double deltaThreshold = 3000;
 
     public List<CongestionAnomalyEvent> detectAnomalies(List<CongestionRedisDto> busyDtos) {
         if (busyDtos.isEmpty()) {

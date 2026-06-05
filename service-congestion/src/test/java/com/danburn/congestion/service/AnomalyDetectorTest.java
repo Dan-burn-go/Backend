@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class AnomalyDetectorTest {
@@ -117,6 +118,8 @@ class AnomalyDetectorTest {
             List<CongestionAnomalyEvent> events = anomalyDetector.detectAnomalies(List.of(dto));
 
             assertThat(events).isEmpty();
+            // anomaly=false 로 tryArm 진입 전 단락 — NPE 마스킹이 아닌 실제 임계 판정 검증
+            then(stringRedisTemplate).should(never()).opsForValue();
         }
 
         @Test
@@ -129,6 +132,8 @@ class AnomalyDetectorTest {
             List<CongestionAnomalyEvent> events = anomalyDetector.detectAnomalies(List.of(dto));
 
             assertThat(events).isEmpty();
+            // anomaly=false 로 tryArm 진입 전 단락 — NPE 마스킹이 아닌 실제 임계 판정 검증
+            then(stringRedisTemplate).should(never()).opsForValue();
         }
 
         @Test
