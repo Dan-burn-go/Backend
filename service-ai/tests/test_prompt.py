@@ -49,7 +49,7 @@ class TestBuildAnomalyPrompt:
     def test_includes_weekday_commute_escape_rule(self) -> None:
         out = prompt_module.build_anomaly_system_prompt(_WED)
 
-        assert "평일 출퇴근 일반 패턴" in out
+        assert "평일 출퇴근 통근 인파로 보입니다" in out
         assert "업무지구·교통허브" in out
 
     def test_no_unknown_cause_phrasing(self) -> None:

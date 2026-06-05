@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class AnomalyDetectorTest {
@@ -93,6 +94,35 @@ class AnomalyDetectorTest {
         }
 
         @Test
+        @DisplayName("ratio < threshold 이나 절대 증가분 >= delta → anomaly 발행 (baseline 높은 지역)")
+        void deltaExceedsThreshold() {
+            CongestionRedisDto dto = busyDto("POI127", 20000);
+            // avgMax=17000, ratio=1.18 < 1.5, delta=3000 >= 3000
+            given(hourlyAvgCacheService.getAvgMax(eq("POI127"), any(int.class))).willReturn(Optional.of(17000.0));
+            given(stringRedisTemplate.opsForValue()).willReturn(valueOps);
+            given(valueOps.setIfAbsent(anyString(), eq("1"), any(Duration.class))).willReturn(true);
+
+            List<CongestionAnomalyEvent> events = anomalyDetector.detectAnomalies(List.of(dto));
+
+            assertThat(events).hasSize(1);
+            assertThat(events.get(0).ratio()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("ratio < threshold 이고 절대 증가분 < delta → anomaly 없음")
+        void ratioAndDeltaBelowThreshold() {
+            CongestionRedisDto dto = busyDto("POI127", 20000);
+            // avgMax=18000, ratio=1.11 < 1.5, delta=2000 < 3000
+            given(hourlyAvgCacheService.getAvgMax(eq("POI127"), any(int.class))).willReturn(Optional.of(18000.0));
+
+            List<CongestionAnomalyEvent> events = anomalyDetector.detectAnomalies(List.of(dto));
+
+            assertThat(events).isEmpty();
+            // anomaly=false 로 tryArm 진입 전 단락 — NPE 마스킹이 아닌 실제 임계 판정 검증
+            then(stringRedisTemplate).should(never()).opsForValue();
+        }
+
+        @Test
         @DisplayName("ratio < threshold → anomaly 없음")
         void ratioBelowThreshold() {
             CongestionRedisDto dto = busyDto("POI001", 15000);
@@ -102,6 +132,8 @@ class AnomalyDetectorTest {
             List<CongestionAnomalyEvent> events = anomalyDetector.detectAnomalies(List.of(dto));
 
             assertThat(events).isEmpty();
+            // anomaly=false 로 tryArm 진입 전 단락 — NPE 마스킹이 아닌 실제 임계 판정 검증
+            then(stringRedisTemplate).should(never()).opsForValue();
         }
 
         @Test
@@ -115,6 +147,33 @@ class AnomalyDetectorTest {
             List<CongestionAnomalyEvent> events = anomalyDetector.detectAnomalies(List.of(dto));
 
             assertThat(events).isEmpty();
+        }
+
+        @Test
+        @DisplayName("avgMax=0 이고 current < deltaThreshold → anomaly 없음, ratio Infinity 미노출")
+        void avgMaxZeroNoDivisionByZero() {
+            CongestionRedisDto dto = busyDto("POI999", 1000);
+            // avgMax=0.0, current=1000 < 3000 → anomaly false
+            given(hourlyAvgCacheService.getAvgMax(eq("POI999"), any(int.class))).willReturn(Optional.of(0.0));
+
+            List<CongestionAnomalyEvent> events = anomalyDetector.detectAnomalies(List.of(dto));
+
+            assertThat(events).isEmpty();
+            then(stringRedisTemplate).should(never()).opsForValue();
+        }
+
+        @Test
+        @DisplayName("avgMax=0 이고 current >= deltaThreshold → anomaly 발생, ratio 는 null")
+        void avgMaxZeroWithAnomaly() {
+            CongestionRedisDto dto = busyDto("POI999", 4000);
+            given(hourlyAvgCacheService.getAvgMax(eq("POI999"), any(int.class))).willReturn(Optional.of(0.0));
+            given(stringRedisTemplate.opsForValue()).willReturn(valueOps);
+            given(valueOps.setIfAbsent(anyString(), eq("1"), any(Duration.class))).willReturn(true);
+
+            List<CongestionAnomalyEvent> events = anomalyDetector.detectAnomalies(List.of(dto));
+
+            assertThat(events).hasSize(1);
+            assertThat(events.get(0).ratio()).isNull();
         }
 
         @Test
