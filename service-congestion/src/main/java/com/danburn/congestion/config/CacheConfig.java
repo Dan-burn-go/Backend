@@ -6,6 +6,7 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.web.filter.ShallowEtagHeaderFilter;
 
 import java.util.concurrent.TimeUnit;
@@ -24,7 +25,10 @@ public class CacheConfig {
     }
 
     @Bean
-    public ShallowEtagHeaderFilter shallowEtagHeaderFilter() {
-        return new ShallowEtagHeaderFilter();
+    public FilterRegistrationBean<ShallowEtagHeaderFilter> shallowEtagHeaderFilter() {
+        FilterRegistrationBean<ShallowEtagHeaderFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new ShallowEtagHeaderFilter());
+        registration.addUrlPatterns("/api/congestion");
+        return registration;
     }
 }
