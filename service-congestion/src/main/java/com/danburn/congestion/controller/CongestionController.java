@@ -8,12 +8,15 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Tag(name = "혼잡도", description = "실시간 혼잡도 조회 API")
 @RestController
@@ -25,8 +28,10 @@ public class CongestionController {
 
     @Operation(summary = "전체 혼잡도 조회", description = "122개 서울 주요 장소의 실시간 혼잡도를 조회합니다.")
     @GetMapping
-    public ApiResponse<List<CongestionResponse>> findAll() {
-        return ApiResponse.ok(congestionService.findAll());
+    public ResponseEntity<ApiResponse<List<CongestionResponse>>> findAll() {
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(5, TimeUnit.SECONDS).mustRevalidate())
+                .body(ApiResponse.ok(congestionService.findAll()));
     }
 
     @Operation(summary = "장소별 혼잡도 조회", description = "areaCode로 특정 장소의 실시간 혼잡도를 조회합니다.")
