@@ -91,3 +91,4 @@ congestion:
     retention-days: ${CONGESTION_CLEANUP_RETENTION_DAYS:7}
   anomaly:
     max-people-ratio: ${CONGESTION_ANOMALY_MAX_PEOPLE_RATIO:1.5}
+    min-people-delta: ${CONGESTION_ANOMALY_MIN_PEOPLE_DELTA:3000}

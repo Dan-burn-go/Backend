@@ -21,7 +21,9 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * BUSY 구간 중 current/avg 비율 임계 초과 anomaly 감지.
+ * BUSY 구간 중 current/avg 비율 임계 초과 또는 절대 증가분 임계 초과 anomaly 감지.
+ *
+ * - baseline 높은 지역(관광지·체육시설)은 비율로 묻히므로 절대 증가분 OR 조건 병행
  *
  * - rising-edge 1회 발행: Redis SETNX armed 플래그(`congestion:anomaly-armed:{areaCode}`, TTL 24h)
  * - BUSY 해제 시 armed 플래그 명시 삭제 (BUSY 재진입 시 재발행 허용)
@@ -41,6 +43,9 @@ public class AnomalyDetector {
 
     @Value("${congestion.anomaly.max-people-ratio:1.5}")
     private double ratioThreshold;
+
+    @Value("${congestion.anomaly.min-people-delta:3000}")
+    private double deltaThreshold;
 
     public List<CongestionAnomalyEvent> detectAnomalies(List<CongestionRedisDto> busyDtos) {
         if (busyDtos.isEmpty()) {
@@ -67,7 +72,8 @@ public class AnomalyDetector {
                 log.info("[AnomalyDetector] baseline 부재 fallback - areaCode={}", areaCode);
             } else {
                 ratio = current.doubleValue() / avgMax;
-                anomaly = ratio >= ratioThreshold;
+                double delta = current.doubleValue() - avgMax;
+                anomaly = ratio >= ratioThreshold || delta >= deltaThreshold;
             }
 
             if (!anomaly) {
