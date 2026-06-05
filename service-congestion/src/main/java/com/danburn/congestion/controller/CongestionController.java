@@ -9,11 +9,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.WebRequest;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -28,10 +30,21 @@ public class CongestionController {
 
     @Operation(summary = "전체 혼잡도 조회", description = "122개 서울 주요 장소의 실시간 혼잡도를 조회합니다.")
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CongestionResponse>>> findAll() {
+    public ResponseEntity<ApiResponse<List<CongestionResponse>>> findAll(WebRequest webRequest) {
+        List<CongestionResponse> data = congestionService.findAll();
+        String eTag = "\"" + Integer.toHexString(data.hashCode()) + "\"";
+
+        if (webRequest.checkNotModified(eTag)) {
+            return ResponseEntity.status(HttpStatus.NOT_MODIFIED)
+                    .eTag(eTag)
+                    .cacheControl(CacheControl.maxAge(5, TimeUnit.SECONDS).mustRevalidate())
+                    .build();
+        }
+
         return ResponseEntity.ok()
+                .eTag(eTag)
                 .cacheControl(CacheControl.maxAge(5, TimeUnit.SECONDS).mustRevalidate())
-                .body(ApiResponse.ok(congestionService.findAll()));
+                .body(ApiResponse.ok(data));
     }
 
     @Operation(summary = "장소별 혼잡도 조회", description = "areaCode로 특정 장소의 실시간 혼잡도를 조회합니다.")
