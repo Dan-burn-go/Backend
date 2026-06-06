@@ -79,4 +79,5 @@ class TestBuildAnomalyPrompt:
         assert "population_time 을 '현재 시각'으로 본다" in out
         assert "행사 일시가 오늘(2026-05-27)이 아니면" in out
         assert "3시간 전부터" in out
+        assert "종료 후 1~2시간" in out
         assert "둘 이상이면" in out
