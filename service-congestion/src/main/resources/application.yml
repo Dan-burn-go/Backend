@@ -92,3 +92,4 @@ congestion:
   anomaly:
     max-people-ratio: ${CONGESTION_ANOMALY_MAX_PEOPLE_RATIO:1.3}
     min-people-delta: ${CONGESTION_ANOMALY_MIN_PEOPLE_DELTA:2000}
+    reanalysis-ttl-minutes: ${CONGESTION_ANOMALY_REANALYSIS_TTL_MINUTES:60}
