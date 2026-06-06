@@ -140,8 +140,9 @@ public class AnomalyDetector {
 
     private boolean tryArm(String areaCode) {
         String key = ARMED_KEY_PREFIX + areaCode;
+        // 오설정(0 이하) 시 1분 스팸 대신 기본값으로 안전 복귀 (재분석 비용 보호)
+        long ttlMinutes = reanalysisTtlMinutes > 0 ? reanalysisTtlMinutes : 60;
         try {
-            long ttlMinutes = Math.max(1, reanalysisTtlMinutes);
             Boolean set = stringRedisTemplate.opsForValue()
                     .setIfAbsent(key, "1", Duration.ofMinutes(ttlMinutes));
             return Boolean.TRUE.equals(set);

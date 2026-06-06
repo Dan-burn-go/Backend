@@ -98,6 +98,23 @@ class AnomalyDetectorTest {
         }
 
         @Test
+        @DisplayName("reanalysisTtlMinutes 0 이하 오설정 → 기본 60분으로 안전 복귀")
+        void armedTtlFallsBackToDefaultWhenNonPositive() {
+            ReflectionTestUtils.setField(anomalyDetector, "reanalysisTtlMinutes", 0L);
+
+            CongestionRedisDto dto = busyDto("POI001", 30000);
+            given(hourlyAvgCacheService.getAvgMax(eq("POI001"), any(int.class))).willReturn(Optional.empty());
+            given(stringRedisTemplate.opsForValue()).willReturn(valueOps);
+            given(valueOps.setIfAbsent(anyString(), eq("1"), any(Duration.class))).willReturn(true);
+
+            anomalyDetector.detectAnomalies(List.of(dto));
+
+            ArgumentCaptor<Duration> ttlCaptor = ArgumentCaptor.forClass(Duration.class);
+            then(valueOps).should().setIfAbsent(anyString(), eq("1"), ttlCaptor.capture());
+            assertThat(ttlCaptor.getValue()).isEqualTo(Duration.ofMinutes(60));
+        }
+
+        @Test
         @DisplayName("ratio >= threshold → anomaly 이벤트 발행")
         void ratioExceedsThreshold() {
             CongestionRedisDto dto = busyDto("POI001", 30000);
