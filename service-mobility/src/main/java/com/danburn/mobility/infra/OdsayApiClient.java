@@ -41,7 +41,7 @@ public class OdsayApiClient {
       throw new OdsayServerException("ODsay API 응답이 없습니다.");
     }
     if (response.result() == null) {
-      throw new GlobalException(HttpStatus.SERVICE_UNAVAILABLE.value(), "경로를 찾을 수 없습니다.");
+      throw new GlobalException(HttpStatus.NOT_FOUND.value(), "경로를 찾을 수 없습니다.");
     }
     return response;
   }

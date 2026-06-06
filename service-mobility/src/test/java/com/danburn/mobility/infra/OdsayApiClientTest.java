@@ -94,15 +94,15 @@ class OdsayApiClientTest {
         }
 
         @Test
-        @DisplayName("result가 null이면 GlobalException 503을 던진다")
-        void null_result_throws_global_exception_503() {
+        @DisplayName("result가 null이면 GlobalException 404를 던진다")
+        void null_result_throws_global_exception_404() {
             given(responseSpec.body(OdsayApiResponse.class)).willReturn(new OdsayApiResponse(null));
 
             assertThatThrownBy(() -> odsayApiClient.fetchOdsayRoute(REQUEST))
                     .isInstanceOf(GlobalException.class)
                     .hasMessage("경로를 찾을 수 없습니다.")
                     .extracting(e -> ((GlobalException) e).getStatus())
-                    .isEqualTo(503);
+                    .isEqualTo(404);
         }
     }
 

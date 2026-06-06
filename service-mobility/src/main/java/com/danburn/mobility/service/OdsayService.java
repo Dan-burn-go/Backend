@@ -5,6 +5,7 @@ import com.danburn.mobility.dto.request.OdsayApiRequest;
 import com.danburn.mobility.dto.response.TransitRouteResponse;
 import com.danburn.mobility.infra.OdsayApiClient;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,7 @@ public class OdsayService {
     private final OdsayResponseMapper odsayResponseMapper;
 
     @CircuitBreaker(name = "odsay", fallbackMethod = "fetchOdsayRouteFallback")
+    @Retry(name = "odsay")
     public TransitRouteResponse fetchOdsayRoute(OdsayApiRequest odsayApiRequest) {
         return odsayResponseMapper.toResponse(
                 odsayApiClient.fetchOdsayRoute(odsayApiRequest)
@@ -26,6 +28,9 @@ public class OdsayService {
     }
 
     TransitRouteResponse fetchOdsayRouteFallback(OdsayApiRequest odsayApiRequest, Throwable t) {
+        if (t instanceof GlobalException e) {
+            throw e;
+        }
         log.warn("ODsay 서킷 브레이커 작동 - fallback 실행: {}", t.getMessage());
         throw new GlobalException(HttpStatus.SERVICE_UNAVAILABLE.value(), "대중교통 경로 조회 서비스가 일시적으로 불가합니다.");
     }

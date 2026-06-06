@@ -61,7 +61,7 @@ class OdsayServiceTest {
         @DisplayName("client가 GlobalException을 던지면 그대로 전파된다")
         void client_throws_global_exception_propagates() {
             given(odsayApiClient.fetchOdsayRoute(REQUEST))
-                    .willThrow(new GlobalException(503, "경로를 찾을 수 없습니다."));
+                    .willThrow(new GlobalException(404, "경로를 찾을 수 없습니다."));
 
             assertThatThrownBy(() -> odsayService.fetchOdsayRoute(REQUEST))
                     .isInstanceOf(GlobalException.class)
@@ -88,6 +88,18 @@ class OdsayServiceTest {
     @Nested
     @DisplayName("fetchOdsayRouteFallback")
     class FetchOdsayRouteFallback {
+
+        @Test
+        @DisplayName("GlobalException 발생 시 그대로 전파된다")
+        void fallback_on_global_exception_rethrows() {
+            GlobalException cause = new GlobalException(404, "경로를 찾을 수 없습니다.");
+
+            assertThatThrownBy(() -> odsayService.fetchOdsayRouteFallback(REQUEST, cause))
+                    .isInstanceOf(GlobalException.class)
+                    .hasMessage("경로를 찾을 수 없습니다.")
+                    .extracting(e -> ((GlobalException) e).getStatus())
+                    .isEqualTo(404);
+        }
 
         @Test
         @DisplayName("OdsayServerException 발생 시 GlobalException 503을 던진다")

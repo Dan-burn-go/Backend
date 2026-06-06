@@ -52,6 +52,15 @@ resilience4j:
           - com.danburn.mobility.exception.OdsayServerException
         ignore-exceptions:
           - com.danburn.common.exception.GlobalException
+  retry:
+    instances:
+      odsay:
+        max-attempts: 2
+        wait-duration: 500ms
+        retry-exceptions:
+          - com.danburn.mobility.exception.OdsayServerException
+        ignore-exceptions:
+          - com.danburn.common.exception.GlobalException
 
 logging:
   loki:
