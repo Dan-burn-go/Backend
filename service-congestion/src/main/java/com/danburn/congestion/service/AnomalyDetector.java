@@ -25,8 +25,9 @@ import java.util.Set;
  *
  * - baseline 높은 지역(관광지·체육시설)은 비율로 묻히므로 절대 증가분 OR 조건 병행
  *
- * - rising-edge 1회 발행: Redis SETNX armed 플래그(`congestion:anomaly-armed:{areaCode}`, TTL 24h)
- * - BUSY 해제 시 armed 플래그 명시 삭제 (BUSY 재진입 시 재발행 허용)
+ * - 발행 중복 차단: Redis SETNX armed 플래그(`congestion:anomaly-armed:{areaCode}`, TTL=reanalysis-ttl-minutes)
+ *   TTL 만료 후에도 BUSY 지속이면 재arm → 재발행 → 재분석. 즉 BUSY 지속 시 주기적 재분석(기본 60분)
+ * - BUSY 해제 시 armed 플래그 명시 삭제 (BUSY 재진입 시 즉시 재발행 허용)
  * - baseline 부재 시 보수적으로 anomaly=true fallback
  */
 @Slf4j
@@ -35,7 +36,6 @@ import java.util.Set;
 public class AnomalyDetector {
 
     private static final String ARMED_KEY_PREFIX = "congestion:anomaly-armed:";
-    private static final Duration ARMED_TTL = Duration.ofHours(24);
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final HourlyAvgCacheService hourlyAvgCacheService;
@@ -47,6 +47,10 @@ public class AnomalyDetector {
 
     @Value("${congestion.anomaly.min-people-delta:2000}")
     private double deltaThreshold = 2000;
+
+    // armed 플래그 TTL(분) = anomaly 재분석 주기. 만료 후 BUSY 지속이면 재발행 → 재분석.
+    @Value("${congestion.anomaly.reanalysis-ttl-minutes:60}")
+    private long reanalysisTtlMinutes = 60;
 
     public List<CongestionAnomalyEvent> detectAnomalies(List<CongestionRedisDto> busyDtos) {
         if (busyDtos.isEmpty()) {
@@ -137,7 +141,8 @@ public class AnomalyDetector {
     private boolean tryArm(String areaCode) {
         String key = ARMED_KEY_PREFIX + areaCode;
         try {
-            Boolean set = stringRedisTemplate.opsForValue().setIfAbsent(key, "1", ARMED_TTL);
+            Boolean set = stringRedisTemplate.opsForValue()
+                    .setIfAbsent(key, "1", Duration.ofMinutes(reanalysisTtlMinutes));
             return Boolean.TRUE.equals(set);
         } catch (Exception e) {
             log.warn("[AnomalyDetector] armed 마킹 실패 - areaCode={}, reason={}", areaCode, e.getMessage());

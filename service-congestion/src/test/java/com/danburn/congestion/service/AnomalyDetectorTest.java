@@ -6,6 +6,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -76,6 +77,21 @@ class AnomalyDetectorTest {
             assertThat(events).hasSize(1);
             assertThat(events.get(0).areaCode()).isEqualTo("POI001");
             assertThat(events.get(0).ratio()).isNull();
+        }
+
+        @Test
+        @DisplayName("armed 플래그 TTL = 재분석 주기(기본 1시간)로 SETNX")
+        void armedTtlIsReanalysisInterval() {
+            CongestionRedisDto dto = busyDto("POI001", 30000);
+            given(hourlyAvgCacheService.getAvgMax(eq("POI001"), any(int.class))).willReturn(Optional.empty());
+            given(stringRedisTemplate.opsForValue()).willReturn(valueOps);
+            given(valueOps.setIfAbsent(anyString(), eq("1"), any(Duration.class))).willReturn(true);
+
+            anomalyDetector.detectAnomalies(List.of(dto));
+
+            ArgumentCaptor<Duration> ttlCaptor = ArgumentCaptor.forClass(Duration.class);
+            then(valueOps).should().setIfAbsent(anyString(), eq("1"), ttlCaptor.capture());
+            assertThat(ttlCaptor.getValue()).isEqualTo(Duration.ofHours(1));
         }
 
         @Test
