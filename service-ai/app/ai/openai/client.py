@@ -103,7 +103,7 @@ def _parse_pub_date(date_str: str, today: date) -> date | None:
         return None
     try:
         # Python 3.10 이하 fromisoformat 은 'Z' 접미사 미지원 → +00:00 으로 치환
-        iso = s[:-1] + "+00:00" if s.endswith("Z") else s
+        iso = s[:-1] + "+00:00" if s.endswith(("Z", "z")) else s
         dt = datetime.fromisoformat(iso)
         dt = dt.astimezone(_KST) if dt.tzinfo else dt.replace(tzinfo=_KST)
         return dt.date()
