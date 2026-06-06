@@ -76,8 +76,10 @@ class TestBuildAnomalyPrompt:
         out = prompt_module.build_anomaly_system_prompt(_WED)
 
         assert "[행사 시점·복합 원인 판단 — 엄격]" in out
-        assert "population_time 을 '현재 시각'으로 본다" in out
+        assert "'현재 시각'으로 본다" in out
+        assert 'population_time(형식 "YYYY-MM-DD HH:MM", KST)' in out
         assert "행사 일시가 오늘(2026-05-27)이 아니면" in out
         assert "3시간 전부터" in out
         assert "종료 후 1~2시간" in out
+        assert "약 3시간을 종료로 가정" in out
         assert "둘 이상이면" in out
