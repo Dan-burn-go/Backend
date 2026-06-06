@@ -139,6 +139,12 @@ class TestParsePubDate:
         assert _parse_pub_date("", TODAY) is None
         assert _parse_pub_date("not-a-date", TODAY) is None
 
+    def test_absolute_korean_date_not_parsed_as_relative(self) -> None:
+        # ago/전 접미사 없는 절대날짜는 상대표현으로 오파싱되면 안 된다.
+        # "5월 1일"의 '1일'을 today-1 로 오판하면 옛 기사가 최근으로 둔갑(가드 우회).
+        assert _parse_pub_date("2026년 5월 19일", TODAY) is None
+        assert _parse_pub_date("5월 1일", TODAY) is None
+
 
 class TestResultDateRecent:
     def test_recent_within_window(self) -> None:

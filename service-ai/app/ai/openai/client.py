@@ -85,9 +85,10 @@ def _has_today_marker(text: str, today: date) -> bool:
 # 기사 합성이므로 정확히 오늘이 아니라 최근이면 충분하다. 다일(多日) 집회·행사 커버.
 _RECENT_WINDOW_DAYS = 2
 
-# DDG 백엔드별 상대 발행일 표기 ("15 hours ago", "1일 전" 등) 파싱용
+# DDG 백엔드별 상대 발행일 표기 ("15 hours ago", "1일 전" 등) 파싱용.
+# ago/전 접미사를 강제해 절대날짜("5월 1일")의 '1일'을 상대표현으로 오파싱하는 것을 막는다.
 _RELATIVE_DATE_RE = re.compile(
-    r"(\d+)\s*(second|minute|hour|day|week|month|초|분|시간|일|주|개월|달)"
+    r"(\d+)\s*(second|minute|hour|day|week|month|초|분|시간|일|주|개월|달)(?:s?\s+ago|\s*전)"
 )
 
 
@@ -101,7 +102,9 @@ def _parse_pub_date(date_str: str, today: date) -> date | None:
     if not s:
         return None
     try:
-        dt = datetime.fromisoformat(s)
+        # Python 3.10 이하 fromisoformat 은 'Z' 접미사 미지원 → +00:00 으로 치환
+        iso = s[:-1] + "+00:00" if s.endswith("Z") else s
+        dt = datetime.fromisoformat(iso)
         dt = dt.astimezone(_KST) if dt.tzinfo else dt.replace(tzinfo=_KST)
         return dt.date()
     except ValueError:
