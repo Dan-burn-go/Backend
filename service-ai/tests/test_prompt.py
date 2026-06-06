@@ -78,4 +78,5 @@ class TestBuildAnomalyPrompt:
         assert "[행사 시점·복합 원인 판단 — 엄격]" in out
         assert "population_time 을 '현재 시각'으로 본다" in out
         assert "행사 일시가 오늘(2026-05-27)이 아니면" in out
+        assert "3시간 전부터" in out
         assert "둘 이상이면" in out
