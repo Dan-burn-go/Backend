@@ -141,8 +141,9 @@ public class AnomalyDetector {
     private boolean tryArm(String areaCode) {
         String key = ARMED_KEY_PREFIX + areaCode;
         try {
+            long ttlMinutes = Math.max(1, reanalysisTtlMinutes);
             Boolean set = stringRedisTemplate.opsForValue()
-                    .setIfAbsent(key, "1", Duration.ofMinutes(reanalysisTtlMinutes));
+                    .setIfAbsent(key, "1", Duration.ofMinutes(ttlMinutes));
             return Boolean.TRUE.equals(set);
         } catch (Exception e) {
             log.warn("[AnomalyDetector] armed 마킹 실패 - areaCode={}, reason={}", areaCode, e.getMessage());

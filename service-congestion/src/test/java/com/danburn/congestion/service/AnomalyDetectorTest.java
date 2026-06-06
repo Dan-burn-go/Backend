@@ -14,6 +14,7 @@ import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Duration;
 import java.util.List;
@@ -80,8 +81,10 @@ class AnomalyDetectorTest {
         }
 
         @Test
-        @DisplayName("armed 플래그 TTL = 재분석 주기(기본 1시간)로 SETNX")
+        @DisplayName("armed 플래그 TTL = 설정된 재분석 주기(reanalysisTtlMinutes)로 SETNX")
         void armedTtlIsReanalysisInterval() {
+            ReflectionTestUtils.setField(anomalyDetector, "reanalysisTtlMinutes", 30L);
+
             CongestionRedisDto dto = busyDto("POI001", 30000);
             given(hourlyAvgCacheService.getAvgMax(eq("POI001"), any(int.class))).willReturn(Optional.empty());
             given(stringRedisTemplate.opsForValue()).willReturn(valueOps);
@@ -91,7 +94,7 @@ class AnomalyDetectorTest {
 
             ArgumentCaptor<Duration> ttlCaptor = ArgumentCaptor.forClass(Duration.class);
             then(valueOps).should().setIfAbsent(anyString(), eq("1"), ttlCaptor.capture());
-            assertThat(ttlCaptor.getValue()).isEqualTo(Duration.ofHours(1));
+            assertThat(ttlCaptor.getValue()).isEqualTo(Duration.ofMinutes(30));
         }
 
         @Test
