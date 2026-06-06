@@ -11,6 +11,8 @@ from datetime import date
 
 from app.ai.openai.client import (
     _has_today_marker,
+    _parse_pub_date,
+    _result_date_recent,
     _results_cover_today,
     _today_date_variants,
 )
@@ -86,3 +88,73 @@ class TestResultsCoverToday:
 
     def test_false_on_empty_results(self) -> None:
         assert _results_cover_today([], TODAY) is False
+
+    def test_true_when_pubdate_today_but_body_omits_month(self) -> None:
+        # 운영 사고 재현: 오늘 발행 집회 기사인데 본문이 '19일'처럼 월을 생략해
+        # 본문 토큰 매칭은 실패하지만 발행일로 통과해야 한다.
+        results = [
+            {
+                "title": "재선거 요구 잠실 개표소 앞 3000명 집결",
+                "date": "2026-05-19T04:52:59+00:00",
+                "body": "19일 연합뉴스에 따르면 이날 낮 12시 잠실 일대에 2000명쯤 집결",
+            },
+        ]
+        assert _has_today_marker(results[0]["body"], TODAY) is False
+        assert _results_cover_today(results, TODAY) is True
+
+    def test_true_when_relative_pubdate(self) -> None:
+        # DDG yahoo/bing 백엔드가 뱉는 상대표현 — 본문엔 날짜 없음
+        results = [
+            {
+                "title": "올림픽공원 개표소 봉쇄 집회",
+                "date": "Opinion15 hours ago",
+                "body": "재선거 요구 시위대가 핸드볼경기장 일대에 집결",
+            },
+        ]
+        assert _results_cover_today(results, TODAY) is True
+
+
+class TestParsePubDate:
+    def test_iso_utc_converted_to_kst(self) -> None:
+        # 04:52 UTC == 13:52 KST 같은 날
+        assert _parse_pub_date("2026-05-19T04:52:59+00:00", TODAY) == date(2026, 5, 19)
+
+    def test_iso_kst_boundary(self) -> None:
+        # 2026-05-19 16:00 UTC == 2026-05-20 01:00 KST
+        assert _parse_pub_date("2026-05-19T16:00:00+00:00", TODAY) == date(2026, 5, 20)
+
+    def test_relative_hours_ago_maps_to_today(self) -> None:
+        assert _parse_pub_date("15 hours ago", TODAY) == TODAY
+        assert _parse_pub_date("3시간 전", TODAY) == TODAY
+
+    def test_relative_days_ago(self) -> None:
+        assert _parse_pub_date("2 days ago", TODAY) == date(2026, 5, 17)
+        assert _parse_pub_date("1일 전", TODAY) == date(2026, 5, 18)
+
+    def test_today_yesterday_words(self) -> None:
+        assert _parse_pub_date("today", TODAY) == TODAY
+        assert _parse_pub_date("어제", TODAY) == date(2026, 5, 18)
+
+    def test_none_on_empty_or_unparsable(self) -> None:
+        assert _parse_pub_date("", TODAY) is None
+        assert _parse_pub_date("not-a-date", TODAY) is None
+
+    def test_absolute_korean_date_not_parsed_as_relative(self) -> None:
+        # ago/전 접미사 없는 절대날짜는 상대표현으로 오파싱되면 안 된다.
+        # "5월 1일"의 '1일'을 today-1 로 오판하면 옛 기사가 최근으로 둔갑(가드 우회).
+        assert _parse_pub_date("2026년 5월 19일", TODAY) is None
+        assert _parse_pub_date("5월 1일", TODAY) is None
+
+
+class TestResultDateRecent:
+    def test_recent_within_window(self) -> None:
+        assert _result_date_recent("2026-05-18T00:00:00+00:00", TODAY) is True  # 1일 전
+        assert _result_date_recent("15 hours ago", TODAY) is True
+
+    def test_old_article_rejected(self) -> None:
+        # 원래 사고: 두 달 전 기사
+        assert _result_date_recent("2026-03-29T09:02:00+00:00", TODAY) is False
+
+    def test_unparsable_rejected(self) -> None:
+        assert _result_date_recent("", TODAY) is False
+        assert _result_date_recent("garbage", TODAY) is False

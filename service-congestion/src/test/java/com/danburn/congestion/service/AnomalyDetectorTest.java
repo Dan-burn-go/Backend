@@ -82,7 +82,7 @@ class AnomalyDetectorTest {
         @DisplayName("ratio >= threshold → anomaly 이벤트 발행")
         void ratioExceedsThreshold() {
             CongestionRedisDto dto = busyDto("POI001", 30000);
-            // avgMax=15000, ratio=2.0 >= 1.5
+            // avgMax=15000, ratio=2.0 >= 1.3
             given(hourlyAvgCacheService.getAvgMax(eq("POI001"), any(int.class))).willReturn(Optional.of(15000.0));
             given(stringRedisTemplate.opsForValue()).willReturn(valueOps);
             given(valueOps.setIfAbsent(anyString(), eq("1"), any(Duration.class))).willReturn(true);
@@ -97,7 +97,7 @@ class AnomalyDetectorTest {
         @DisplayName("ratio < threshold 이나 절대 증가분 >= delta → anomaly 발행 (baseline 높은 지역)")
         void deltaExceedsThreshold() {
             CongestionRedisDto dto = busyDto("POI127", 20000);
-            // avgMax=17000, ratio=1.18 < 1.5, delta=3000 >= 3000
+            // avgMax=17000, ratio=1.18 < 1.3, delta=3000 >= 2000
             given(hourlyAvgCacheService.getAvgMax(eq("POI127"), any(int.class))).willReturn(Optional.of(17000.0));
             given(stringRedisTemplate.opsForValue()).willReturn(valueOps);
             given(valueOps.setIfAbsent(anyString(), eq("1"), any(Duration.class))).willReturn(true);
@@ -112,8 +112,8 @@ class AnomalyDetectorTest {
         @DisplayName("ratio < threshold 이고 절대 증가분 < delta → anomaly 없음")
         void ratioAndDeltaBelowThreshold() {
             CongestionRedisDto dto = busyDto("POI127", 20000);
-            // avgMax=18000, ratio=1.11 < 1.5, delta=2000 < 3000
-            given(hourlyAvgCacheService.getAvgMax(eq("POI127"), any(int.class))).willReturn(Optional.of(18000.0));
+            // avgMax=19000, ratio=1.05 < 1.3, delta=1000 < 2000
+            given(hourlyAvgCacheService.getAvgMax(eq("POI127"), any(int.class))).willReturn(Optional.of(19000.0));
 
             List<CongestionAnomalyEvent> events = anomalyDetector.detectAnomalies(List.of(dto));
 
@@ -123,10 +123,25 @@ class AnomalyDetectorTest {
         }
 
         @Test
+        @DisplayName("baseline 높은 지역 평소보다 +2000(delta 임계) → anomaly 발행 (집회·행사 캐치)")
+        void deltaAtThresholdCatchesHighBaseline() {
+            CongestionRedisDto dto = busyDto("POI127", 20000);
+            // avgMax=18000, ratio=1.11 < 1.3, delta=2000 >= 2000 (하향된 임계로 새로 잡힘)
+            given(hourlyAvgCacheService.getAvgMax(eq("POI127"), any(int.class))).willReturn(Optional.of(18000.0));
+            given(stringRedisTemplate.opsForValue()).willReturn(valueOps);
+            given(valueOps.setIfAbsent(anyString(), eq("1"), any(Duration.class))).willReturn(true);
+
+            List<CongestionAnomalyEvent> events = anomalyDetector.detectAnomalies(List.of(dto));
+
+            assertThat(events).hasSize(1);
+            assertThat(events.get(0).ratio()).isNotNull();
+        }
+
+        @Test
         @DisplayName("ratio < threshold → anomaly 없음")
         void ratioBelowThreshold() {
             CongestionRedisDto dto = busyDto("POI001", 15000);
-            // avgMax=20000, ratio=0.75 < 1.5
+            // avgMax=20000, ratio=0.75 < 1.3
             given(hourlyAvgCacheService.getAvgMax(eq("POI001"), any(int.class))).willReturn(Optional.of(20000.0));
 
             List<CongestionAnomalyEvent> events = anomalyDetector.detectAnomalies(List.of(dto));

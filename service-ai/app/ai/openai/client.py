@@ -13,7 +13,7 @@ import asyncio
 import json
 import logging
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -81,12 +81,77 @@ def _has_today_marker(text: str, today: date) -> bool:
     return any(v in text for v in _today_date_variants(today))
 
 
-def _results_cover_today(tool_results: list[dict[str, Any]], today: date) -> bool:
-    """검색 결과(title+body) 합본에 오늘 날짜 표기가 하나라도 있으면 True.
+# 발행일을 이벤트일 기준 '최근'으로 인정할 폭(일). 가드의 실제 적은 몇 달 전
+# 기사 합성이므로 정확히 오늘이 아니라 최근이면 충분하다. 다일(多日) 집회·행사 커버.
+_RECENT_WINDOW_DAYS = 2
 
-    있으면 검색이 오늘 일정을 다룬 것으로 보고 모델 응답을 신뢰한다.
-    없으면 모델이 과거 기사로 사건을 합성했을 수 있으므로 신뢰하지 않는다.
+# DDG 백엔드별 상대 발행일 표기 ("15 hours ago", "1일 전" 등) 파싱용.
+# ago/전 접미사를 강제해 절대날짜("5월 1일")의 '1일'을 상대표현으로 오파싱하는 것을 막는다.
+_RELATIVE_DATE_RE = re.compile(
+    r"(\d+)\s*(second|minute|hour|day|week|month|초|분|시간|일|주|개월|달)(?:s?\s+ago|\s*전)"
+)
+
+
+def _parse_pub_date(date_str: str, today: date) -> date | None:
+    """기사 발행일을 date 로 파싱. ISO·상대표현 모두 처리, 실패 시 None.
+
+    DDG 는 호출마다 백엔드를 바꿔 date 형식이 ISO 거나 "15 hours ago" 처럼
+    상대표현이다. 상대표현은 today(이벤트일) 기준으로 환산한다.
     """
+    s = date_str.strip()
+    if not s:
+        return None
+    try:
+        # Python 3.10 이하 fromisoformat 은 'Z' 접미사 미지원 → +00:00 으로 치환
+        iso = s[:-1] + "+00:00" if s.endswith(("Z", "z")) else s
+        dt = datetime.fromisoformat(iso)
+        dt = dt.astimezone(_KST) if dt.tzinfo else dt.replace(tzinfo=_KST)
+        return dt.date()
+    except ValueError:
+        pass
+    low = s.lower()
+    if "today" in low or "오늘" in low:
+        return today
+    if "yesterday" in low or "어제" in low:
+        return today - timedelta(days=1)
+    m = _RELATIVE_DATE_RE.search(low)
+    if m:
+        n = int(m.group(1))
+        unit = m.group(2)
+        if unit in ("second", "minute", "hour", "초", "분", "시간"):
+            return today
+        if unit in ("day", "일"):
+            return today - timedelta(days=n)
+        if unit in ("week", "주"):
+            return today - timedelta(weeks=n)
+        if unit in ("month", "개월", "달"):
+            return today - timedelta(days=30 * n)
+    return None
+
+
+def _result_date_recent(date_str: str, today: date) -> bool:
+    """기사 발행일이 이벤트일 기준 _RECENT_WINDOW_DAYS 이내면 True.
+
+    한국 뉴스는 본문에 '6일'처럼 월을 생략해 본문 토큰 매칭이 자주 실패한다.
+    최근 발행 뉴스는 오늘 이벤트일 가능성이 높고, 발행일 기준이라 몇 달 전
+    기사 합성은 같이 차단되므로 본문 토큰 매칭의 보완 신호로 쓴다.
+    """
+    art = _parse_pub_date(date_str, today)
+    if art is None:
+        return False
+    return abs((art - today).days) <= _RECENT_WINDOW_DAYS
+
+
+def _results_cover_today(tool_results: list[dict[str, Any]], today: date) -> bool:
+    """검색 결과가 오늘(이벤트일) 일정을 다룬 것으로 볼 수 있으면 True.
+
+    - 기사 발행일이 최근(±_RECENT_WINDOW_DAYS)이거나
+    - title+body 합본에 오늘 날짜 표기가 하나라도 있으면 통과.
+    있으면 모델 응답을 신뢰한다. 없으면 모델이 과거 기사로 사건을 합성했을 수
+    있으므로 신뢰하지 않는다.
+    """
+    if any(_result_date_recent(r.get("date") or "", today) for r in tool_results):
+        return True
     haystack = " ".join(
         part
         for r in tool_results
