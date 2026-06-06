@@ -118,8 +118,11 @@ def _parse_pub_date(date_str: str, today: date) -> date | None:
     if m:
         n = int(m.group(1))
         unit = m.group(2)
-        if unit in ("second", "minute", "hour", "초", "분", "시간"):
+        if unit in ("second", "minute", "초", "분"):
             return today
+        if unit in ("hour", "시간"):
+            # 24h 이상(예: 72 hours ago=3일 전)은 일 단위로 환산해야 가드를 우회 안 함
+            return today - timedelta(days=n // 24)
         if unit in ("day", "일"):
             return today - timedelta(days=n)
         if unit in ("week", "주"):
