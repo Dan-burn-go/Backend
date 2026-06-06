@@ -127,6 +127,12 @@ class TestParsePubDate:
         assert _parse_pub_date("15 hours ago", TODAY) == TODAY
         assert _parse_pub_date("3시간 전", TODAY) == TODAY
 
+    def test_relative_hours_over_24_convert_to_days(self) -> None:
+        # 24h 이상은 일 단위 환산 — today 로 오판해 가드 우회하면 안 됨
+        assert _parse_pub_date("36 hours ago", TODAY) == date(2026, 5, 18)
+        assert _parse_pub_date("48 hours ago", TODAY) == date(2026, 5, 17)
+        assert _parse_pub_date("72시간 전", TODAY) == date(2026, 5, 16)
+
     def test_relative_days_ago(self) -> None:
         assert _parse_pub_date("2 days ago", TODAY) == date(2026, 5, 17)
         assert _parse_pub_date("1일 전", TODAY) == date(2026, 5, 18)
