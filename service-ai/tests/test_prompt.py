@@ -70,3 +70,12 @@ class TestBuildAnomalyPrompt:
         out = prompt_module.build_anomaly_system_prompt(_WED)
 
         assert "{area_name}" in out
+
+    def test_event_timing_rules_present(self) -> None:
+        # 미래/시점 부적절 행사 귀속 차단 + 복합 원인 허용 규칙
+        out = prompt_module.build_anomaly_system_prompt(_WED)
+
+        assert "[행사 시점·복합 원인 판단 — 엄격]" in out
+        assert "population_time 을 '현재 시각'으로 본다" in out
+        assert "행사 일시가 오늘(2026-05-27)이 아니면" in out
+        assert "둘 이상이면" in out
