@@ -26,9 +26,9 @@ class Settings(BaseSettings):
     # ── LLM 429 재시도 (지수 백오프) ──
     # - 최초 호출 포함 총 시도 횟수. 소진 시 RetriableError 전파 → DLQ
     # - 대기 = max(base * 2**(n-1), retry_after), 상한 max_delay
-    # - RPM 슬롯(12초) 정렬: 6 → 12 → 24초 (인라인 총 ≤42초), 상한 60초=한 분 윈도우
+    # - RPM 슬롯(15초=60/RPM4) 정렬: 15 → 30 → 60초 (인라인 총 ≤105초), 상한 60초=한 분 윈도우
     llm_retry_max_attempts: int = 4
-    llm_retry_base_delay: float = 6.0
+    llm_retry_base_delay: float = 15.0
     llm_retry_max_delay: float = 60.0
 
     # ── RabbitMQ ──
