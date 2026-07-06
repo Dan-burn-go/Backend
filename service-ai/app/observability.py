@@ -1,7 +1,9 @@
 import atexit
 import logging
 import logging.handlers
+import os
 import queue
+import socket
 
 import logging_loki
 from opentelemetry import trace
@@ -61,9 +63,11 @@ def setup_observability(app) -> None:
             self.emitter.tags["level"] = record.levelname
             super().emit(record)
 
+    # 다중 인스턴스 구분용 라벨 — SERVER_NAME 미지정 시 hostname
+    server_name = os.getenv("SERVER_NAME") or socket.gethostname()
     loki_handler = _LevelLokiHandler(
         url=settings.loki_url,
-        tags={"app": "service-ai"},
+        tags={"app": "service-ai", "server": server_name},
         version="1",
     )
     loki_handler.setFormatter(formatter)
