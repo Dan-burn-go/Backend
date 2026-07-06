@@ -7,6 +7,7 @@ from app.ai.errors import NonRetriableError, RetriableError
 from app.ai.interface import AIAnalyzer
 from app.config import settings
 from app.models.schemas import CongestionEvent
+from app.rabbitmq.dedup import IdempotencyGate
 from app.rabbitmq.publisher import RabbitMQPublisher
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,8 @@ class BatchProcessor:
     - mode: "normal" 또는 "anomaly". analyzer 에 전달되어 시스템 프롬프트/tool_choice 분기.
     - max_size / window_seconds 인자 미지정 시 settings 기본값 사용.
       anomaly 큐는 max_size=1 로 즉시 처리.
+    - gate: 멱등성 게이트. LLM 호출 전 (area_code, population_time) 선점으로 중복 요청 차단.
+      None 이면 게이트 비활성(전건 fresh) — 기존 동작.
     """
 
     def __init__(
@@ -35,9 +38,11 @@ class BatchProcessor:
         max_size: int | None = None,
         window_seconds: float | None = None,
         name: str | None = None,
+        gate: IdempotencyGate | None = None,
     ) -> None:
         self._analyzer = analyzer
         self._publisher = publisher
+        self._gate = gate
         self._mode = mode
         self._max_size = max_size if max_size is not None else settings.batch_max_size
         self._window_seconds = (
@@ -125,35 +130,81 @@ class BatchProcessor:
                 )
                 return
 
+    async def _partition(
+        self, items: list[BatchItem]
+    ) -> tuple[list[BatchItem], list[BatchItem]]:
+        """멱등성 게이트로 (선점 성공=fresh, 이미 존재=중복) 분리.
+
+        - gate 미설정 시 전건 fresh (기존 동작)
+        - 같은 (area_code, population_time) 이 한 배치에 중복돼도 첫 건만 fresh
+        """
+        if self._gate is None:
+            return list(items), []
+        fresh: list[BatchItem] = []
+        duplicates: list[BatchItem] = []
+        for event, message in items:
+            if await self._gate.acquire(self._gate.key_for(event)):
+                fresh.append((event, message))
+            else:
+                duplicates.append((event, message))
+        return fresh, duplicates
+
+    async def _release_all(self, items: list[BatchItem]) -> None:
+        """선점 마커 해제 (실패로 DLQ 이동 시 → DLQ 재처리가 재선점 가능)."""
+        if self._gate is None:
+            return
+        for event, _ in items:
+            await self._gate.release(self._gate.key_for(event))
+
     async def _process(self, items: list[BatchItem]) -> None:
         if not items:
             return
-        events = [event for event, _ in items]
+
+        fresh, duplicates = await self._partition(items)
+
+        # 중복(이미 선점됨) → LLM 호출 없이 즉시 ack (토큰 절약)
+        if duplicates:
+            logger.info(
+                "[BatchProcessor:%s] 중복 요청 %d건 스킵 - LLM 호출 없음",
+                self._name,
+                len(duplicates),
+            )
+            await self._ack_all(duplicates)
+
+        if not fresh:
+            return
+
+        events = [event for event, _ in fresh]
         logger.info("[BatchProcessor:%s] 배치 처리 시작 - %d건", self._name, len(events))
 
         try:
             results = await self._analyzer.analyze(events, mode=self._mode)
         except NonRetriableError as e:
-            await self._dlq_all(items, f"NonRetriableError: {e}")
+            await self._release_all(fresh)
+            await self._dlq_all(fresh, f"NonRetriableError: {e}")
             return
         except RetriableError as e:
-            await self._dlq_all(items, f"RetriableError: {e}")
+            await self._release_all(fresh)
+            await self._dlq_all(fresh, f"RetriableError: {e}")
             return
         except Exception as e:
-            await self._dlq_all(items, f"AI 분석 실패: {type(e).__name__}: {e}")
+            await self._release_all(fresh)
+            await self._dlq_all(fresh, f"AI 분석 실패: {type(e).__name__}: {e}")
             return
 
         # 분석 성공 → publish 시도
         try:
             await self._publisher.publish_all(results)
         except Exception as e:
-            await self._dlq_all(items, f"Publisher 실패: {e}")
+            await self._release_all(fresh)
+            await self._dlq_all(fresh, f"Publisher 실패: {e}")
             return
 
-        await self._ack_all(items)
+        # 성공 → 마커 유지(TTL 동안 재전달 스킵) 후 ack
+        await self._ack_all(fresh)
         logger.info(
             "[BatchProcessor:%s] 배치 처리 완료 - 분석=%d건, 입력=%d건",
             self._name,
             len(results),
-            len(items),
+            len(fresh),
         )
