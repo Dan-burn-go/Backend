@@ -102,22 +102,32 @@ def health():
 # ── 테스트 전용 API (프로덕션에서 제거) ──
 
 @app.post("/test/publish")
-async def test_publish(area_code: str = "POI001", congestion_level: str = "붐빔"):
-    """RabbitMQ에 테스트 메시지를 발행한다. Consumer → Batch → Stub AI 전체 플로우 검증용."""
+async def test_publish(
+    area_code: str = "POI001",
+    congestion_level: str = "붐빔",
+    population_time: str = "2026-04-03 14:00",
+    area_name: str = "테스트지역",
+):
+    """RabbitMQ에 테스트 메시지를 발행한다. Consumer → Batch → AI 전체 플로우 검증용.
+
+    - population_time: 멱등성 키 (area_code, population_time) 제어용 (부하테스트 중복/고유 키 구분)
+    - area_name: consumer 필수 필드 (누락 시 파싱 실패 → DLQ)
+    """
     connection = await aio_pika.connect_robust(settings.rabbitmq_url)
     async with connection:
         channel = await connection.channel()
         message = aio_pika.Message(
             body=json.dumps({
+                "areaName": area_name,
                 "areaCode": area_code,
                 "congestionLevel": congestion_level,
                 "maxPeopleCount": 12000,
-                "populationTime": "2026-04-03 14:00",
+                "populationTime": population_time,
             }).encode(),
             content_type="application/json",
         )
         await channel.default_exchange.publish(message, routing_key=settings.rabbitmq_queue)
-    return {"status": "published", "area_code": area_code, "congestion_level": congestion_level}
+    return {"status": "published", "area_code": area_code, "population_time": population_time}
 
 
 @app.post("/test/analyze")
