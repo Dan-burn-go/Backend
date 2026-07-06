@@ -102,27 +102,27 @@ class OdsayServiceTest {
         }
 
         @Test
-        @DisplayName("OdsayServerException 발생 시 GlobalException 503을 던진다")
-        void fallback_on_server_exception_throws_503() {
+        @DisplayName("OdsayServerException 발생 시 GlobalException 500을 던진다")
+        void fallback_on_server_exception_throws_500() {
             Throwable cause = new com.danburn.mobility.exception.OdsayServerException("ODsay API 응답이 없습니다.");
 
             assertThatThrownBy(() -> odsayService.fetchOdsayRouteFallback(REQUEST, cause))
                     .isInstanceOf(GlobalException.class)
                     .hasMessage("대중교통 경로 조회 서비스가 일시적으로 불가합니다.")
                     .extracting(e -> ((GlobalException) e).getStatus())
-                    .isEqualTo(503);
+                    .isEqualTo(500);
         }
 
         @Test
-        @DisplayName("RuntimeException 발생 시 GlobalException 503을 던진다")
-        void fallback_on_runtime_exception_throws_503() {
+        @DisplayName("RuntimeException 발생 시 GlobalException 500을 던진다")
+        void fallback_on_runtime_exception_throws_500() {
             Throwable cause = new RuntimeException("네트워크 오류");
 
             assertThatThrownBy(() -> odsayService.fetchOdsayRouteFallback(REQUEST, cause))
                     .isInstanceOf(GlobalException.class)
                     .hasMessage("대중교통 경로 조회 서비스가 일시적으로 불가합니다.")
                     .extracting(e -> ((GlobalException) e).getStatus())
-                    .isEqualTo(503);
+                    .isEqualTo(500);
         }
     }
 
