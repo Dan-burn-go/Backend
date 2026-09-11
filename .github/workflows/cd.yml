@@ -3,6 +3,7 @@ name: CD - Deploy to Server
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   # ── Docker 이미지 병렬 빌드 & 푸시 (2개씩, GitHub-hosted) ──────────────────
