@@ -1,0 +1,79 @@
+# Redis 분산락 dedup 부하테스트용 오버레이
+# - WireMock: 외부 LLM(OpenAI 호환) 목킹 + 호출 수 카운트
+# - service-ai-1 / service-ai-2: 멀티팟(분산락 증명용) — 로컬 캐시로는 못 막고 공유 Redis만 막음
+# - BATCH_MAX_SIZE=1: 이벤트 1개 = LLM 호출 1회로 만들어 "WireMock 호출 수 = 고유 이벤트 수" 1:1 대응
+#
+# 실행:
+#   docker compose -f docker-compose.yml -f docker-compose.loadtest.yml up -d \
+#     redis rabbitmq observability wiremock service-ai-1 service-ai-2
+#
+# 단일팟 대조 실험이 필요하면 service-ai-1 만 up.
+services:
+  wiremock:
+    image: wiremock/wiremock:latest
+    command: ["--port", "8080", "--disable-banner"]
+    volumes:
+      - ./load-test/wiremock/mappings:/home/wiremock/mappings
+    ports:
+      - "8089:8080"
+    networks:
+      - backend-net
+
+  service-ai-1:
+    build:
+      context: ./service-ai
+      dockerfile: Dockerfile
+    environment:
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/
+      - AI_PROVIDER=openai
+      - OPENAI_BASE_URL=http://wiremock:8080/v1
+      - OPENAI_API_KEY=test
+      - OPENAI_MODEL=gpt-oss-120b
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      - BATCH_MAX_SIZE=1
+      - TIKTOKEN_DISABLE=1
+      - SERVER_NAME=service-ai-1
+      - OTLP_TRACES_URL=http://observability:4318/v1/traces
+      - LOKI_URL=http://observability:3100/loki/api/v1/push
+    ports:
+      - "8085:8085"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      wiremock:
+        condition: service_started
+    networks:
+      - backend-net
+
+  service-ai-2:
+    build:
+      context: ./service-ai
+      dockerfile: Dockerfile
+    environment:
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/
+      - AI_PROVIDER=openai
+      - OPENAI_BASE_URL=http://wiremock:8080/v1
+      - OPENAI_API_KEY=test
+      - OPENAI_MODEL=gpt-oss-120b
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      - BATCH_MAX_SIZE=1
+      - TIKTOKEN_DISABLE=1
+      - SERVER_NAME=service-ai-2
+      - OTLP_TRACES_URL=http://observability:4318/v1/traces
+      - LOKI_URL=http://observability:3100/loki/api/v1/push
+    ports:
+      - "8086:8085"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      wiremock:
+        condition: service_started
+    networks:
+      - backend-net
+
+networks:
+  backend-net:

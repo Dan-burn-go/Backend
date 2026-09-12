@@ -1,0 +1,25 @@
+{
+  "priority": 5,
+  "request": {
+    "method": "POST",
+    "urlPathPattern": ".*/chat/completions"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "id": "chatcmpl-mock",
+      "object": "chat.completion",
+      "created": 0,
+      "model": "gpt-oss-120b",
+      "choices": [
+        {
+          "index": 0,
+          "message": { "role": "assistant", "content": "{\"results\": []}" },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": { "prompt_tokens": 100, "completion_tokens": 10, "total_tokens": 110 }
+    }
+  }
+}

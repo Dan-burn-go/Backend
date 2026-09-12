@@ -36,6 +36,24 @@ congestion:
   service:
     url: ${CONGESTION_SERVICE_URL:http://localhost:8082}
 
+resilience4j:
+  circuitbreaker:
+    instances:
+      congestion:
+        register-health-indicator: true
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 5
+        automatic-transition-from-open-to-half-open-enabled: true
+  timelimiter:
+    instances:
+      congestion:
+        timeout-duration: 3s
+        cancel-running-future: true
+
 kakao:
   api:
     key: ${KAKAO_API_KEY:}

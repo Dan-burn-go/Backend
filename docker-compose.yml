@@ -198,10 +198,13 @@ services:
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.cerebras.ai/v1}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-oss-120b}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379/0
       - OTLP_TRACES_URL=http://observability:4318/v1/traces
       - LOKI_URL=http://observability:3100/loki/api/v1/push
     depends_on:
       rabbitmq:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - backend-net

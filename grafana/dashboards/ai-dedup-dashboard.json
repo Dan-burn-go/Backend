@@ -1,0 +1,91 @@
+{
+  "uid": "ai-dedup",
+  "title": "AI Redis 분산락 Dedup",
+  "tags": ["service-ai", "dedup", "redis-lock"],
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "선점 성공 (LLM 호출 대상)",
+      "description": "SETNX로 락을 잡아 실제 분석에 들어간 건수. WireMock 호출 수와 일치해야 함.",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "green" } } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum(count_over_time({app=\"service-ai\"} |= \"배치 처리 시작\" [$__range]))",
+          "queryType": "instant"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "중복 스킵 (락 실패 → LLM 미호출)",
+      "description": "락을 못 잡아 LLM 없이 ack된 중복 요청 수. 절감된 호출.",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 0 },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "orange" } } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum(count_over_time({app=\"service-ai\"} |= \"중복 요청\" [$__range]))",
+          "queryType": "instant"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "piechart",
+      "title": "서버별 처리 분산 (멀티 인스턴스 증명)",
+      "description": "중복 이벤트가 2개 서버(service-ai 인스턴스)로 분산 유입됐음을 보여줌 → 로컬 캐시로는 못 막고 공유 Redis만 막았다는 근거.",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 0 },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } } },
+      "options": { "legend": { "showLegend": true, "placement": "right", "values": ["value"] }, "reduceOptions": { "calcs": ["lastNotNull"], "values": false }, "pieType": "pie" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum by (server) (count_over_time({app=\"service-ai\"} |~ \"배치 처리 시작|중복 요청\" [$__range]))",
+          "queryType": "range",
+          "legendFormat": "{{server}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "중복 스킵 스파이크 (서버별)",
+      "description": "동시 폭주 시점에 스킵 카운트가 솟구쳤다 0으로 떨어지는 침 모양이면 동시성 방어 성공.",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 6 },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 60, "stacking": { "mode": "normal" } } } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum by (server) (count_over_time({app=\"service-ai\"} |= \"중복 요청\" [5s]))",
+          "queryType": "range",
+          "legendFormat": "skip {{server}}"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum(count_over_time({app=\"service-ai\"} |= \"배치 처리 시작\" [5s]))",
+          "queryType": "range",
+          "legendFormat": "선점 성공(LLM)"
+        }
+      ]
+    }
+  ]
+}

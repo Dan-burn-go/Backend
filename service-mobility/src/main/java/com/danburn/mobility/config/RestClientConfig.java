@@ -12,8 +12,8 @@ public class RestClientConfig {
   @Bean
   public RestClient odsayRestClient(){
     SimpleClientHttpRequestFactory simpleClientHttpRequestFactory = new SimpleClientHttpRequestFactory();
-    simpleClientHttpRequestFactory.setConnectTimeout(Duration.ofSeconds(5));
-    simpleClientHttpRequestFactory.setReadTimeout(Duration.ofSeconds(5));
+    simpleClientHttpRequestFactory.setConnectTimeout(Duration.ofSeconds(2));
+    simpleClientHttpRequestFactory.setReadTimeout(Duration.ofSeconds(3));
 
     return RestClient.builder()
       .requestFactory(simpleClientHttpRequestFactory)

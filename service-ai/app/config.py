@@ -26,9 +26,9 @@ class Settings(BaseSettings):
     # ── LLM 429 재시도 (지수 백오프) ──
     # - 최초 호출 포함 총 시도 횟수. 소진 시 RetriableError 전파 → DLQ
     # - 대기 = max(base * 2**(n-1), retry_after), 상한 max_delay
-    # - RPM 슬롯(12초) 정렬: 6 → 12 → 24초 (인라인 총 ≤42초), 상한 60초=한 분 윈도우
+    # - RPM 슬롯(15초=60/RPM4) 정렬: 15 → 30 → 60초 (인라인 총 ≤105초), 상한 60초=한 분 윈도우
     llm_retry_max_attempts: int = 4
-    llm_retry_base_delay: float = 6.0
+    llm_retry_base_delay: float = 15.0
     llm_retry_max_delay: float = 60.0
 
     # ── RabbitMQ ──
@@ -51,6 +51,17 @@ class Settings(BaseSettings):
     # ── Batch ──
     batch_window_seconds: float = 5.0
     batch_max_size: int = 3
+
+    # ── Redis 멱등성 게이트 (중복 LLM 요청 방지) ──
+    # - LLM 호출 전 (area_code, population_time) 키를 SET NX EX 로 선점
+    #   · 선점 성공 → LLM 호출 통과 / 이미 존재 → 중복 재전달 → 스킵(ack)
+    # - 성공 시 마커 유지(TTL 동안 재전달 스킵) / 실패 시 해제(DLQ 재처리 재선점)
+    # - Redis 장애 시 fail-open: 게이트 통과 → 저장 중복은 DB UNIQUE 가 최종 보증
+    # - TTL: 인라인 재시도 예산(≤105초) + 재전달 지연 여유. DLQ 재처리 주기(600초)보다 짧아 재시도 미차단
+    redis_url: str = "redis://localhost:6379/0"
+    dedup_enabled: bool = True
+    dedup_key_prefix: str = "ai:dedup"
+    dedup_key_ttl_seconds: int = 300
 
     # ── Observability ──
     otlp_traces_url: str = "http://localhost:4318/v1/traces"
