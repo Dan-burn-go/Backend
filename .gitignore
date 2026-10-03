@@ -59,6 +59,5 @@ logs/
 
 # Claude Code / OMC
 .omc/
-.claude/
-CLAUDE.md
-**/CLAUDE.md
+# .claude/ 와 CLAUDE.md 는 팀 공유 하네스라 커밋한다. 개인 설정만 제외한다
+.claude/settings.local.json
