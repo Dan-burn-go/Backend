@@ -22,3 +22,4 @@ Redis 분산락으로 요청 멱등성을 보장한다. 동일 키의 분석이 
 ## 관련
 - 커밋 `691bdfa` (#370), `c2c7585` (#372 부하테스트)
 - `005-ai-report-idempotent-insert.md` (저장 단계의 멱등성)
+- `013-lock-owner-token-release.md` (해제 시 소유자 확인으로 보강)

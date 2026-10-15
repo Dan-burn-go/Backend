@@ -132,35 +132,39 @@ class BatchProcessor:
 
     async def _partition(
         self, items: list[BatchItem]
-    ) -> tuple[list[BatchItem], list[BatchItem]]:
+    ) -> tuple[list[BatchItem], list[BatchItem], list[str]]:
         """멱등성 게이트로 (선점 성공=fresh, 이미 존재=중복) 분리.
 
         - gate 미설정 시 전건 fresh (기존 동작)
         - 같은 (area_code, population_time) 이 한 배치에 중복돼도 첫 건만 fresh
+        - tokens 는 fresh 와 같은 순서의 락 소유 토큰 (해제 시 소유자 확인용)
         """
         if self._gate is None:
-            return list(items), []
+            return list(items), [], []
         fresh: list[BatchItem] = []
         duplicates: list[BatchItem] = []
+        tokens: list[str] = []
         for event, message in items:
-            if await self._gate.acquire(self._gate.key_for(event)):
+            token = await self._gate.acquire(self._gate.key_for(event))
+            if token:
                 fresh.append((event, message))
+                tokens.append(token)
             else:
                 duplicates.append((event, message))
-        return fresh, duplicates
+        return fresh, duplicates, tokens
 
-    async def _release_all(self, items: list[BatchItem]) -> None:
+    async def _release_all(self, items: list[BatchItem], tokens: list[str]) -> None:
         """선점 마커 해제 (실패로 DLQ 이동 시 → DLQ 재처리가 재선점 가능)."""
         if self._gate is None:
             return
-        for event, _ in items:
-            await self._gate.release(self._gate.key_for(event))
+        for (event, _), token in zip(items, tokens):
+            await self._gate.release(self._gate.key_for(event), token)
 
     async def _process(self, items: list[BatchItem]) -> None:
         if not items:
             return
 
-        fresh, duplicates = await self._partition(items)
+        fresh, duplicates, tokens = await self._partition(items)
 
         # 중복(이미 선점됨) → LLM 호출 없이 즉시 ack (토큰 절약)
         if duplicates:
@@ -180,15 +184,15 @@ class BatchProcessor:
         try:
             results = await self._analyzer.analyze(events, mode=self._mode)
         except NonRetriableError as e:
-            await self._release_all(fresh)
+            await self._release_all(fresh, tokens)
             await self._dlq_all(fresh, f"NonRetriableError: {e}")
             return
         except RetriableError as e:
-            await self._release_all(fresh)
+            await self._release_all(fresh, tokens)
             await self._dlq_all(fresh, f"RetriableError: {e}")
             return
         except Exception as e:
-            await self._release_all(fresh)
+            await self._release_all(fresh, tokens)
             await self._dlq_all(fresh, f"AI 분석 실패: {type(e).__name__}: {e}")
             return
 
@@ -196,7 +200,7 @@ class BatchProcessor:
         try:
             await self._publisher.publish_all(results)
         except Exception as e:
-            await self._release_all(fresh)
+            await self._release_all(fresh, tokens)
             await self._dlq_all(fresh, f"Publisher 실패: {e}")
             return
 

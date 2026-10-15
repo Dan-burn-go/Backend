@@ -13,3 +13,5 @@
 | PRD v1.4 가 낡았다. Map·Mobility·AI 가 "개발 예정" 으로, 6장 백로그 기능이 전부 `Backlog` 상태로 적혀 있으나 실제로는 대체지 추천·경로 추천·AI 분석·트렌드·랭킹·문화정보·알림까지 구현돼 테스트가 있다 | `docs/product-specs/PRD.md` | PRD 를 보고 범위를 판단하면 이미 있는 기능을 다시 만들거나 없는 기능을 있다고 본다 | 2026-10-04 |
 | 배치 윈도우 문서가 네 곳에서 갈린다. PRD 6.4 와 `service-ai/CLAUDE.md` 는 2초, README 는 10초, 코드는 5초 | `service-ai/app/config.py:52`, `docs/product-specs/PRD.md`, `README.md`, `service-ai/CLAUDE.md` | 위 기존 항목의 정확한 범위 | 2026-10-04 |
 | 수용 기준 3건이 테스트 없이 `미충족` 이다. Stub 클라이언트 폴백(CG-19), 대체지 소요시간 정렬(MP-18), 경로 소요시간 정렬·추천 표시(MB-11) | `docs/requirements/` | PRD 수용 조건인데 무엇이 보장하는지 없다 | 2026-10-04 |
+| 발행 실패 이벤트 대기열이 메모리에 있다. 브로커 장애 중 congestion 이 재시작되면 대기 중인 BUSY 이벤트가 사라진다 | `CongestionEventPublisher` | 그 장소는 다음 상승 엣지까지 AI 분석이 안 된다. 막으려면 Transactional Outbox (결정 012) | 2026-10-16 |
+| 분산락 획득 후 해제 전 프로세스가 죽으면 마커가 TTL(300초) 동안 남아 재처리가 스킵된다 | `service-ai/app/rabbitmq/dedup.py` | 그 이벤트는 TTL 이 끝나고 다시 들어와야 분석된다. 막으려면 2키 패턴 (결정 013) | 2026-10-16 |

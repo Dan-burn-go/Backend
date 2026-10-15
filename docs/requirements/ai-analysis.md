@@ -30,10 +30,14 @@ PRD 6.4 는 배치 윈도우를 2초로 적었으나 코드 기본값은 5초다
 | AI-22 | 토큰 쿼터 429 는 재시도하고 큐 초과 429 는 재시도하지 않는다 | `service-ai/tests/test_openai_client_429.py::test_token_quota_exceeded_is_retriable_with_retry_after`, `service-ai/tests/test_openai_client_429.py::test_queue_exceeded_is_non_retriable` | 결정 `../design-docs/decisions/006-llm-429-backoff.md` | 자동 |
 | AI-23 | Retry-After 가 없으면 reset 헤더로, 둘 다 없으면 기본 대기로 떨어진다 | `service-ai/tests/test_openai_client_429.py::test_token_quota_exceeded_fallbacks_to_reset_header`, `service-ai/tests/test_openai_client_429.py::test_unknown_429_is_retriable_with_default_wait` | 결정 006 | 자동 |
 | AI-24 | 검색 도구 입력에서 날짜 토큰을 제거하고, 다 지워지면 원문으로 되돌린다 | `service-ai/tests/test_mcp_server_sanitize.py::test_sanitize_strips_date_tokens`, `service-ai/tests/test_mcp_server_sanitize.py::test_sanitize_empty_after_strip_falls_back_to_original` | 결정 `../design-docs/decisions/007-mcp-function-calling.md` | 자동 |
+| AI-25 | 발행이 브로커 확인(ack)을 못 받으면(nack·타임아웃·반송·연결 실패) 대기열에 보관하고 다음 수집 주기 시작 시 재발행한다 | `CongestionEventPublisherTest.nack`, `CongestionEventPublisherTest.timeout`, `CongestionEventPublisherTest.returned`, `CongestionEventPublisherTest.connectionFailure`, `CongestionEventPublisherTest.recovered`, `CongestionSchedulerTest.fetchAndSave_republishesPendingFirst` | 결정 `../design-docs/decisions/012-publisher-confirm-pending-retry.md` | 자동 |
+| AI-26 | 처리가 락 TTL 을 넘겨 다른 소비자가 재선점해도, 먼저 잡았던 쪽의 해제가 그 락을 지우지 않는다 | `service-ai/tests/test_dedup.py::test_release_after_ttl_expiry_keeps_other_owner_lock`, `service-ai/tests/test_dedup.py::test_ttl_overrun_then_failure_does_not_cause_extra_llm_call` | 결정 `../design-docs/decisions/013-lock-owner-token-release.md` | 자동 |
+| AI-27 | 같은 장소·시점 이벤트 N건(배치 안 중복 + 재전달)에도 LLM 호출은 1건이다 | `service-ai/tests/test_dedup.py::test_n_duplicate_events_call_llm_once` | 결정 004, 013 | 자동 |
 
 | ID | 확인할 것 | 방법 | 상태 |
 |---|---|---|---|
 | AI-M1 | 생성된 원인 문장이 실제 상황과 맞다 | Grafana Log Stream 의 `[Analysis]` 로그를 드래그해 외부 LLM 으로 채점 | 수동 |
 | AI-M2 | TPD soft limit 80% 도달 시 도구 미주입으로 떨어진다 | 운영 로그에서 tool_called=false 전환 확인 | 수동 |
+| AI-M3 | 발행 중 브로커가 내려갔다 올라와도 BUSY 이벤트가 유실되지 않는다 | 로컬 RabbitMQ 컨테이너를 발행 중 stop/start 하고 큐 적재 건수 비교 (결정 012 측정) | 수동 |
 
 AI-M1 은 서비스 내부 검증 시스템이 없어 수동이다 (결정 007).
