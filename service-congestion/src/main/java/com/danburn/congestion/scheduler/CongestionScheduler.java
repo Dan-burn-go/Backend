@@ -40,6 +40,7 @@ public class CongestionScheduler {
     )
     public void fetchAndSave() {
         log.info("[CongestionScheduler] 혼잡도 데이터 수집 시작");
+        eventPublisher.republishPending();
         try {
             List<CongestionApiResponse> responses = seoulApiClient.fetchAll();
             List<CongestionRedisDto> dtos = new ArrayList<>();

@@ -70,6 +70,16 @@ class CongestionSchedulerTest {
     }
 
     @Test
+    @DisplayName("수집 주기 시작 시 지난 주기 발행 실패 이벤트 재발행 (API 장애여도)")
+    void fetchAndSave_republishesPendingFirst() {
+        given(seoulApiClient.fetchAll()).willThrow(new RuntimeException("API 서버 장애"));
+
+        congestionScheduler.fetchAndSave();
+
+        then(eventPublisher).should().republishPending();
+    }
+
+    @Test
     @DisplayName("API 응답이 빈 리스트 → 저장 호출 안 함")
     void fetchAndSave_emptyResponse() {
         given(seoulApiClient.fetchAll()).willReturn(Collections.emptyList());
