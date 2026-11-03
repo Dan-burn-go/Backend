@@ -30,11 +30,17 @@ spring:
     port: ${SPRING_RABBITMQ_PORT:5672}
     username: ${SPRING_RABBITMQ_USERNAME:guest}
     password: ${SPRING_RABBITMQ_PASSWORD:guest}
+    # 발행 수신 확인(confirm) + 라우팅 불가 반송(returns)
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    # 브로커 불통 시 발행 1건이 스케줄러를 오래 막지 않게 (기본 60초)
+    connection-timeout: 5s
     listener:
       simple:
         observation-enabled: true
     template:
       observation-enabled: true
+      mandatory: true
 
 server:
   port: 8082
