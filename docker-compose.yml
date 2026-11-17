@@ -10,7 +10,10 @@ services:
 
   mysql:
     image: mysql:8.0
+    # binlog 3일 보관 (기본 30일이라 디스크가 참)
+    command: --binlog-expire-logs-seconds=259200
     logging: *default-logging
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
       CONGESTION_DB_USERNAME: ${CONGESTION_DB_USERNAME:-}
@@ -33,6 +36,7 @@ services:
   redis:
     image: redis:7-alpine
     logging: *default-logging
+    restart: unless-stopped
     command: >
       sh -c "if [ -n \"$REDIS_PASSWORD\" ]; then
         redis-server --requirepass \"$REDIS_PASSWORD\";
@@ -54,6 +58,7 @@ services:
   rabbitmq:
     image: rabbitmq:3-management-alpine
     logging: *default-logging
+    restart: unless-stopped
     hostname: rabbitmq
     ports:
       - "5672:5672"
@@ -76,6 +81,7 @@ services:
   observability:
     image: grafana/otel-lgtm:latest
     logging: *default-logging
+    restart: unless-stopped
     ports:
       - "3000:3000"   # Grafana UI
       - "4317:4317"   # OTel Collector gRPC
@@ -85,6 +91,9 @@ services:
       - GF_SECURITY_ADMIN_USER=${GF_ADMIN_USER:?GF_ADMIN_USER is not set}
       - GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASSWORD:?GF_ADMIN_PASSWORD is not set}
       - GF_SERVER_ROOT_URL=https://grafana.goseoul.today/
+      # 텔레메트리 7일 보관 (Loki 는 기본값이 무제한)
+      - PROMETHEUS_EXTRA_ARGS=--storage.tsdb.retention.time=7d --storage.tsdb.retention.size=3GB
+      - LOKI_EXTRA_ARGS=-compactor.retention-enabled=true -compactor.delete-request-store=filesystem -store.retention=168h
     volumes:
       - ./grafana/provisioning/dashboards/dashboard.yml:/otel-lgtm/grafana/conf/provisioning/dashboards/danburn.yaml
       - ./grafana/provisioning/datasources/datasource.yml:/otel-lgtm/grafana/conf/provisioning/datasources/danburn.yaml
@@ -100,6 +109,7 @@ services:
       context: .
       dockerfile: service-congestion/Dockerfile
     logging: *default-logging
+    restart: unless-stopped
     ports:
       - "8082:8082"
     environment:
@@ -139,6 +149,7 @@ services:
       context: .
       dockerfile: service-map/Dockerfile
     logging: *default-logging
+    restart: unless-stopped
     ports:
       - "8083:8083"
     environment:
@@ -169,6 +180,7 @@ services:
       context: .
       dockerfile: service-mobility/Dockerfile
     logging: *default-logging
+    restart: unless-stopped
     ports:
       - "8084:8084"
     environment:
@@ -190,6 +202,7 @@ services:
       context: ./service-ai
       dockerfile: Dockerfile
     logging: *default-logging
+    restart: unless-stopped
     ports:
       - "8085:8085"
     environment:
@@ -215,6 +228,7 @@ services:
       context: .
       dockerfile: service-gateway/Dockerfile
     logging: *default-logging
+    restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
